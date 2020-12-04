@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Thu Oct 29 11:08:37 2020
-
-@author: ghkerr
+Each function, which corresponds to a different C40 city for the GW-C40 
+COVID/NO2/mobility project, reads observed measurements of NO2, O3, or PM2.5 
+for the specified time period. Output DataFrames are in a standardized 
+format, specifying daily-averaged concentrations, coordinates of stations, 
+and some type of site/station name (arbitrary, and - in some cases - jibberish)
 """
 
 DIR = '/Users/ghkerr/GW/'
@@ -623,11 +625,15 @@ def read_milan(pollutant, startdate, enddate):
     import pandas as pd
     import numpy as np
     # Site information given in the "Monitoring Site Location" of the page 
+    # (note that some of the sites go by "nicknames")
     sites = {'Verziere':(45.463346740666545, 9.195324807668857),
         'via Senato':(45.470499014097, 9.197460360112531),
         'viale Liguria':(45.443857653564926, 9.167944501742676),
         'viale Marche':(45.49631644365102, 9.190933555313624),
-        'Pascal':(45.47899606168744, 9.235491038497502)}
+        'Pascal':(45.47899606168744, 9.235491038497502),
+        'Senato':(45.470499014097, 9.197460360112531),
+        'Liguria':(45.443857653564926, 9.167944501742676),
+        'Marche':(45.49631644365102, 9.190933555313624)}
     df = pd.DataFrame([])
     # For O3
     if pollutant=='O3':
@@ -695,8 +701,16 @@ def read_milan(pollutant, startdate, enddate):
         df.loc[(df.Site == site), 'Longitude'] = site_lng
     df.set_index('Date', drop=True, inplace=True)
     df = df.loc[startdate:enddate]
-    return 
-    
+    # All of Milan's pollutant measurements are in μg/m3. Convert O3 and NO2 
+    # ppb with the following: 
+    # NO2 1 ppb = 1.88 μg/m3 
+    # O3 1 ppb = 2.00 μg/m3 
+    if pollutant=='NO2':
+        df['Concentration'] = df['Concentration']/1.88
+    if pollutant=='O3':
+        df['Concentration'] = df['Concentration']/2.
+    return df
+
 def read_london(pollutant, startdate, enddate):
     """Function as the option to read pollutant observations for London 
     (individual files for each site) with subfuction "parse" and form daily-
@@ -979,5 +993,6 @@ def read_london(pollutant, startdate, enddate):
     df = pd.read_csv(DIR_AQ+'london/'+'%s_parsed_dailyavg.csv'%(pollutant),
         delimiter=',', header=0, engine='python')
     df.set_index('Date', drop=True, inplace=True)
+    df.index = pd.to_datetime(df.index)
     df = df.loc[startdate:enddate]
     return df    
