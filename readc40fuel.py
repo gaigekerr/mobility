@@ -280,6 +280,16 @@ def read_berlin():
     
     Pkw means passanger cars, LNF stands for light duty vehicles, LBus for 
     urban busses, RBus for coaches, SNF for heavy duty vehicles.
+    
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    df : pandas.core.frame.DataFrame
+        Fuel mix in the Berlin metropolitan area from 2018 for major 
+        transportation and fuel sectors, units of %.    
     """
     import numpy as np
     import pandas as pd
@@ -333,4 +343,74 @@ def read_berlin():
         ]),
         index=['Passenger', 'Light duty', 'Heavy duty', 'Bus', 'Other'], 
         columns=['Gasoline', 'Diesel', 'Other'])    
+    return df
+
+def read_london():
+    """Road traffic fuel consumption comes from the 
+    "LEGGI_2018_Transport_Update_TfL" and, specifically, from the 03c Data
+    Transport sheet (Table 3.3.6). These data represent a broad scaling of the 
+    2016 fuel consumption using 2016-2018 road traffic growth in Central/Inner/
+    Outer London. The data was provided at borough level for all main vehicle 
+    types.
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    df : pandas.core.frame.DataFrame
+        Fuel mix for the City of London and its 32 bouroughs from 2016 (scaled
+        to 2018), units of liters.  
+    """
+    import numpy as np
+    import pandas as pd
+    df = pd.read_excel(DIR_FUEL+'london/'+'LEGGI_2018_Transport_Update_TfL'+
+        '.xlsx', sheet_name='03c Data_Transport', header=0)
+    # Strip off only Table 3.3.6
+    df = df.iloc[255:288]
+    # Drop unneeded columns
+    df = df.loc[:,'Unnamed: 1':'Unnamed: 17']
+    # Rename columns
+    df.rename(columns={'Unnamed: 1':'LA name', 'Unnamed: 2':'LA code', 
+        'Unnamed: 4':'Motorcycle (petrol)', 'Unnamed: 5':'Taxi (diesel)', 
+        'Unnamed: 6':'Car (petrol)', 'Unnamed: 7':'Car (diesel)', 
+        'Unnamed: 8':'LGV (petrol)', 'Unnamed: 9':'LGV (diesel)', 
+        'Unnamed: 10':'Bus (diesel)', 'Unnamed: 11':'Coach (diesel)',
+        'Unnamed: 12':'Rigid (diesel)', 'Unnamed: 13':'Artic (diesel)', 
+        'Unnamed: 14':'Total diesel', 'Unnamed: 15':'Total petrol',
+        'Unnamed: 16':'Total litres', 'Unnamed: 17':'kWh'}, inplace=True)
+    # Passenger; sum of cars and taxis
+    passenger_gas = df['Car (petrol)'].sum()
+    passenger_diesel = df['Car (diesel)'].sum()+df['Taxi (diesel)'].sum()
+    passenger_other = 0.
+    # Light duty; no "Light duty" contribution is given.
+    light_gas = 0.
+    light_diesel = 0.
+    light_other = 0.
+    # Treat LGV + Rigid + Artic as "Heavy duty"; The UK government refers to 
+    # large goods vehicles as LGV. The term articulated lorry ("artic" in Excel 
+    # file) refers to the combination of a tractor and a trailer (in the U.S., 
+    # this is called a semi-trailer truck, "tractor-trailer" or "semi-truck"). 
+    heavy_gas = df['LGV (petrol)'].sum()
+    heavy_diesel = (df['LGV (diesel)'].sum()+df['Rigid (diesel)'].sum()+
+        df['Artic (diesel)'].sum())
+    heavy_other = 0.
+    # Bus + Coach as "Bus" in standardized output DataFrame.
+    bus_gas = 0.
+    bus_diesel = df['Bus (diesel)'].sum()+df['Coach (diesel)'].sum()
+    bus_other = 0.
+    # Only motorcycles are given for the "Other" category 
+    other_gas = df['Motorcycle (petrol)'].sum()
+    other_diesel = 0.
+    other_other = 0.
+    df = pd.DataFrame(np.array([
+        [passenger_gas, passenger_diesel, passenger_other], # Passenger
+        [light_gas, light_diesel, light_other], # Light-duty
+        [heavy_gas, heavy_diesel, heavy_other], # Heavy-duty
+        [bus_gas, bus_diesel, bus_other], # Bus
+        [other_gas, other_diesel, other_other] # Other
+        ]),
+        index=['Passenger', 'Light duty', 'Heavy duty', 'Bus', 'Other'], 
+        columns=['Gasoline', 'Diesel', 'Other'])
     return df
