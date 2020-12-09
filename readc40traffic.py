@@ -226,8 +226,8 @@ def read_santiago(startdate, enddate):
     Returns
     -------
     df : pandas.core.frame.DataFrame
-        Daily summed traffic counts for individual 
-
+        Daily summed traffic counts for individual monitoring sites in 
+        Santiago
     """
     import numpy as np
     import pandas as pd
@@ -307,6 +307,55 @@ def read_santiago(startdate, enddate):
     # Calculate a daily sum over morning (PM) and afternoon (PT) sites
     df = df.groupby([df.index.get_level_values(0),'Site']).sum()
     df.reset_index(inplace=True)
+    df.set_index('Date', drop=True, inplace=True)
+    df = df.loc[startdate:enddate]    
+    return df
+
+def read_london(startdate, enddate):
+    """Traffic data from London is provided as daily vehicle kilometers 
+    traveled on the TLRN in March-October 2019 and 2020. Note that a percent
+    change is also given for "central," "inner," and "outer" but no baseline
+    values are included, so these data weren't extracted in the DataFrame. No 
+    information on the paritioning of light- versus heavy-duty is given. 
+    
+    n.b., a map of the TLRN can be found here: https://www.cleanhighways.co.uk/
+    legislation/london-roads-2
+
+    Parameters
+    ----------
+    startdate : str
+        Start date of period of interest; YYYY-mm-dd format    
+    enddate : str
+        End date of period of interest; YYYY-mm-dd format
+        
+    Returns
+    -------
+    df : pandas.core.frame.DataFrame
+        Vehicle km traveled on TLRN for March-October 2019 and 2020. 
+    """
+    import pandas as pd
+    # Extract daily values of vehicle km travelled on the TLRN in 2020
+    df_2020 = pd.read_excel(DIR_TRAFFIC+'london/'+
+        'COVID 19 Flow Summary Table for Andy.xlsx', sheet_name='Sheet1', 
+        header=1, usecols='C,H')
+    # Baseline day 2019 vehicle km travelled on the TLRN 
+    df_2019 = pd.read_excel(DIR_TRAFFIC+'london/'+
+        'COVID 19 Flow Summary Table for Andy.xlsx', sheet_name='Sheet1', 
+        header=1, usecols='C,L')
+    # Drop NaN columns at the end 
+    df_2019.dropna(inplace=True)
+    df_2020.dropna(inplace=True)
+    # Rename
+    df_2019.rename(columns={'Unnamed: 2':'Date', 'TRLN':'Vehicle km'}, 
+        inplace=True)
+    df_2020.rename(columns={'Unnamed: 2':'Date', 'TLRN.1':'Vehicle km'}, 
+        inplace=True)
+    # Since the column with information about km driven uses the same 
+    # dates as 2020 (MM-DD are the same, just different year), change the
+    # year to 2019
+    df_2019['Date'] = df_2019['Date'] - pd.DateOffset(years=1)
+    # Stack DataFrames into one DataFrame
+    df = pd.concat([df_2019, df_2020])
     df.set_index('Date', drop=True, inplace=True)
     df = df.loc[startdate:enddate]    
     return df
