@@ -133,7 +133,7 @@ def read_mexicocity():
         0.0, # Diesel
         df_raw.loc['Motocicletas']['GLP':'GN'].sum() # Other
         ]]),
-        index=['Light duty', 'Heavy duty', 'Bus', 'Other'], 
+        index=['Passenger', 'Light duty', 'Heavy duty', 'Bus', 'Other'], 
         columns=['Gasoline', 'Diesel', 'Other'])
     return df
 
@@ -414,3 +414,70 @@ def read_london():
         index=['Passenger', 'Light duty', 'Heavy duty', 'Bus', 'Other'], 
         columns=['Gasoline', 'Diesel', 'Other'])
     return df
+
+def read_santiago():
+    """Santiago provided a greenhouse gas inventory that is very hard to 
+    interpret ("CIRIS_RM_2016_20190701_v5.3_upload.xlsx") but provided a 
+    more condensed version with fuel classifications for 2016-2019 
+    ("Distribución Vehículos RM_INE"). We use the most recent values from 2019
+    for the following vehicle types: 
+    Buses --> buses (CLASSIFY AS BUS)
+    Camiones --> trucks (CLASSIFY AS HEAVY-DUTY)
+    Motocicletas --> motorcycles (CLASSIFY AS OTHER)
+    Otros --> other (CLASSIFY AS OTHER)
+    Taxis y alquiler --> taxis and rental (CLASSIFY AS PASSENGER)
+    Vehículos comerciales --> commericial vehicles (CLASSIFY AS LIGHT-DUTY; 
+                              google "Vehiculos comerciales Santiago" for 
+                              infomation)
+    Vehículos particulares --> private vehicles (CLASSIFY AS PASSENGER)
+    
+    The fuel types are interesting, mainly becuase there is a category for 
+    "gas" and one for "gasolineros." The "gas" category, however, is very 
+    minimal compared to the "gasolineros" column (sums for 2016-2019 indiciate
+    that gas is 0.2% of gasolineros). 
+    
+    As of 11 December 2020, I am unclear what the units of the Santiago data
+    are.
+    
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    df : pandas.core.frame.DataFrame
+        Fuel mix for Santiago; unknown units
+    """
+    import numpy as np
+    import pandas as pd
+    # Passenger (sum of Vehículos particulares and taxis y alquiler)
+    passenger_gas = 1.+1414011+3742+31781
+    passenger_diesel = 4992.+106574
+    passenger_other = 544.+87.
+    # Light-duty (vehiculos comerciales)
+    light_gas = 27.+173300
+    light_diesel = 272814.
+    light_other = 94.
+    # Heavy-duty
+    heavy_gas = 849.
+    heavy_diesel = 61149.
+    heavy_other = 10.
+    # Bus
+    bus_gas = 5.+341
+    bus_diesel = 17088.
+    bus_other = 426.
+    # Other (sum of motocicletas and otros)
+    other_gas = 102968.+249+232
+    other_diesel = 19.+5603
+    other_other = 693.+84
+    df = pd.DataFrame(np.array([
+        [passenger_gas, passenger_diesel, passenger_other], # Passenger
+        [light_gas, light_diesel, light_other], # Light-duty
+        [heavy_gas, heavy_diesel, heavy_other], # Heavy-duty
+        [bus_gas, bus_diesel, bus_other], # Bus
+        [other_gas, other_diesel, other_other] # Other
+        ]),
+        index=['Passenger', 'Light duty', 'Heavy duty', 'Bus', 'Other'], 
+        columns=['Gasoline', 'Diesel', 'Other'])    
+    return df 
+    
