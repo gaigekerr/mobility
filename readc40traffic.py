@@ -359,3 +359,122 @@ def read_london(startdate, enddate):
     df.set_index('Date', drop=True, inplace=True)
     df = df.loc[startdate:enddate]    
     return df
+
+def read_mexicocity_baseline(startdate,enddate):
+    """For Mexico City baseline traffic (2016-2019), there are six different 
+    input files labeled C1-C6. The png image in the same folder provides a 
+    legend for which file corresponds to which vehicle type with C1 
+    correpsonding to the smallest type. Thus, 
+    C1 = Autos 2.1-5 meters
+    C2 = Microbuses and vans 5-9 meters
+    C3 = Buses 9-14 meters
+    C4 = Unit truck (2-6 axles) 14-18 meters
+    C5 = articulated truck (5-9 axles) 18-23 meters
+    C6 = biarticulated trucks (5-9 axles) > 23 meters
+    
+    The fraction of heavy-duty vehicles is calculated as the sum of counts from 
+    C4-C6 over the total number. This function isn't the fastest, and could 
+    perhaps be sped up by only reading in C4-C6 and then reading 
+    'BASE_TOTAL_AFORO_2016-2019.csv' as the total number of vehicles (n.b., 
+    I checked that C1+C2+C3+C4+C5+C6=TOTAL AFORO, and this is indeed the case).
+
+    Parameters
+    ----------
+    startdate : str
+        Start date of period of interest; YYYY-mm-dd format    
+    enddate : str
+        End date of period of interest; YYYY-mm-dd format
+        
+    Returns
+    -------
+    df : pandas.core.frame.DataFrame
+        Traffic counts in Mexico City for the pre-COVID period (2016-2019)
+    """
+    import pandas as pd
+    # For light-duty vehicles (types C1-C3)
+    df_light = pd.DataFrame([])
+    for vtype in ['C1','C2','C3']:
+        dfty = pd.read_csv(DIR_TRAFFIC+'mexicocity/SEDEMA_MOVILIDAD/INFOVIAL/'+
+            'BASE_%s_2016-2019.csv'%vtype, delimiter=',', header=3, 
+            engine='python')
+        # Drop row 
+        dfty.drop(dfty.index[[0]], inplace=True)
+        # Set first column as datetime 
+        dfty['Unnamed: 1'] = pd.to_datetime(dfty['Unnamed: 1'])
+        dfty = dfty.rename(columns={'Unnamed: 1':'Date'})
+        dfty = dfty.drop(['3','NOMBRE'], axis=1)
+        cols=[i for i in dfty.columns if i not in ['Date']]
+        for col in cols:
+            dfty[col]=pd.to_numeric(dfty[col])
+        # Calculate daily sum for each site
+        dfty = dfty.resample('D', on='Date').sum()
+        dfty = pd.melt(dfty, var_name='Site', value_name='Count', 
+            ignore_index=False)
+        df_light = df_light.append(dfty, ignore_index=False)            
+    # Group by index and 'Site' column 
+    df_light = df_light.groupby([df_light.index,'Site'])['Count'].sum()
+    df_light = df_light.reset_index()
+    # Same as above but for heavy-duty vehicles (types C4-C6)
+    df_heavy = pd.DataFrame([])
+    for vtype in ['C4','C5','C6']:
+        dfty = pd.read_csv(DIR_TRAFFIC+'mexicocity/SEDEMA_MOVILIDAD/INFOVIAL/'+
+            'BASE_%s_2016-2019.csv'%vtype, delimiter=',', header=3, 
+            engine='python')
+        dfty.drop(dfty.index[[0]], inplace=True)
+        dfty['Unnamed: 1'] = pd.to_datetime(dfty['Unnamed: 1'])
+        dfty = dfty.rename(columns={'Unnamed: 1':'Date'})
+        dfty = dfty.drop(['3','NOMBRE'], axis=1)
+        cols=[i for i in dfty.columns if i not in ['Date']]
+        for col in cols:
+            dfty[col]=pd.to_numeric(dfty[col])
+        dfty = dfty.resample('D', on='Date').sum()
+        dfty = pd.melt(dfty, var_name='Site', value_name='Count', 
+            ignore_index=False)
+        df_heavy = df_heavy.append(dfty, ignore_index=False)       
+    # Group by index and 'Site' column 
+    df_heavy = df_heavy.groupby([df_heavy.index,'Site'])['Count'].sum()
+    df_heavy = df_heavy.reset_index()
+    # Merge DataFrames
+    df = pd.merge(df_light, df_heavy,  how='left', left_on=['Date','Site'], 
+        right_on=['Date','Site'])
+    # Calculate a total count category
+    df['Count'] = df['Count_x']+df['Count_y']
+    df['Frac_HDV'] = df['Count_y']/df['Count']
+    # Drop unneeded columns
+    df = df.drop(['Count_x','Count_y'], axis=1)
+    df.set_index('Date', drop=True, inplace=True)
+    df = df.loc[startdate:enddate]    
+    return df
+
+def read_mexicocity_lockdown(startdate, enddate):
+    """Mexico City provides detailed traffic count information for six 
+    different vehicle types prior to the lockdowns (see function 
+    "read_mexicocity_baseline"), but for the lockdowns only Waze traffic 
+    jam data for each municipality (hourly) is provided in the file
+    "Conteos_lineas_muni_2019_2020" for pre-COVID and COVID months. Possible
+    date ranges span 2019-05-01 to 2020-10-18.
+    
+    Parameters
+    ----------
+    startdate : str
+        Start date of period of interest; YYYY-mm-dd format    
+    enddate : str
+        End date of period of interest; YYYY-mm-dd format
+        
+    Returns
+    -------
+    df : pandas.core.frame.DataFrame
+        Traffic counts in Mexico City for the COVID period
+    """
+    import pandas as pd
+    df = pd.read_csv(DIR_TRAFFIC+'mexicocity/'+
+        'Conteo_Lineas_Muni_2019_2020.csv', delimiter=',', engine='python')
+    # Combine date and hour columns
+    df['Date'] = pd.to_datetime(df['date'])
+    # Daily sum at each site
+    df = df.groupby(['Date','city'])['Total'].sum()
+    df = df.reset_index()
+    df.set_index('Date', drop=True, inplace=True)
+    df = df.rename(columns={'city':'Site', 'Total':'Count'})
+    df = df.loc[startdate:enddate]    
+    return df
