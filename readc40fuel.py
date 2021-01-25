@@ -396,10 +396,73 @@ def read_london():
     heavy_diesel = (df['LGV (diesel)'].sum()+df['Rigid (diesel)'].sum()+
         df['Artic (diesel)'].sum())
     heavy_other = 0.
-    # Bus + Coach as "Bus" in standardized output DataFrame.
+    # Bus + Coach as "Bus" in standardized output DataFrame. 
+    # Update 25 Jan 2021: As per an email with C40 contacts in London, the data 
+    # from the LEGGI provide the fuel and CO2 emissions for TFL buses and 
+    # includes any electric buses – they are already taken into account 
+    # via the calculations as they are part of the fleet assumptions. There are
+    # LPG buses in the TFL fleet.
+    # The proportion of VKM for TFL buses is provided below for 2019 and 2020 – 
+    # you can see change in Diesel as TfL prepare for LEZ expansion. All 
+    # information that TfL hold for buses has already been shared.
+    # 2019
+    # ++++++++++++++
+    # Central London 
+    # --------------
+    # Diesel = 12%
+    # Petrol = 0%
+    # Hybrid = 78.0%
+    # ZEV = 10%
+    #
+    # Inner London 
+    # --------------
+    # Diesel = 46%
+    # Petrol = 0%
+    # Hybrid = 50%
+    # ZEV = 4%
+    #
+    # Outer London 
+    # --------------
+    # Diesel = 86%
+    # Petrol = 0%
+    # Hybrid = 13%
+    # ZEV = 1%
+    #        
+    # 2020
+    # ++++++++++++++
+    # Central London 
+    # --------------
+    # Diesel = 0%
+    # Petrol = 0%
+    # Hybrid = 94%
+    # ZEV = 6%
+    #
+    # Inner London 
+    # --------------
+    # Diesel = 37%
+    # Petrol = 0%
+    # Hybrid = 57%
+    # ZEV = 6%
+    #
+    # Outer London 
+    # --------------
+    # Diesel = 83%
+    # Petrol = 0%
+    # Hybrid = 16%
+    # ZEV = 1%
+    # Replace bus information from LEGGI inventory with an average of
+    # Inner + Outer + Central London for 2020:
+    # Diesel = (83% + 37% + 0%)/3
+    # Petrol = 0%
+    # Hybrid = (94% + 57% + 16%)/3
+    # ZEV = (6% + 6% + 1%)/3
     bus_gas = 0.
-    bus_diesel = df['Bus (diesel)'].sum()+df['Coach (diesel)'].sum()
-    bus_other = 0.
+    bus_diesel = 40.
+    bus_other = (94+57+16)/3. + (6+6+1)/3.
+    # # Old way
+    #bus_gas = 0.
+    #bus_diesel = df['Bus (diesel)'].sum()+df['Coach (diesel)'].sum()
+    #bus_other = 0.
     # Only motorcycles are given for the "Other" category 
     other_gas = df['Motorcycle (petrol)'].sum()
     other_diesel = 0.
