@@ -48,29 +48,39 @@ def read_berlin(startdate, enddate):
     # Change column types from object to float
     for column in df.columns:
         df[column] = df[column].apply(pd.to_numeric, args=('coerce',))
-    # Resample from houryl to daily counts
+    # Resample from hourly to daily counts
     df = df.resample('D').sum()
     # Sum traffic counts going different directions at same sites (i.e., E and W
-    # or N and S)
+    # or N and S), number of passenger vehicles/freight, and the 
+    # fraction of heavy-duty vehicles
     df['MC117'] = (df['MC117 Dir.E Lkw']+df['MC117 Dir.W Lkw']+
         df['MC117 Dir.E Pkw']+df['MC117 Dir.W Pkw'])
-    # Calculate fraction of HDV
+    df['MC117_passenger'] = (df['MC117 Dir.E Pkw']+df['MC117 Dir.W Pkw'])    
+    df['MC117_freight'] = (df['MC117 Dir.E Lkw']+df['MC117 Dir.W Lkw'])    
     df['MC117_FracHDV'] = (df['MC117 Dir.E Lkw']+df['MC117 Dir.W Lkw']
         )/df['MC117']
     df['MC124'] = (df['MC124 Dir.N Lkw']+df['MC124 Dir.S Lkw']+
         df['MC124 Dir.N Pkw']+df['MC124 Dir.S Pkw'])
+    df['MC124_passenger'] = (df['MC124 Dir.N Pkw']+df['MC124 Dir.S Pkw'])    
+    df['MC124_freight'] = (df['MC124 Dir.N Lkw']+df['MC124 Dir.S Lkw'])        
     df['MC124_FracHDV'] = (df['MC124 Dir.N Lkw']+df['MC124 Dir.S Lkw']
         )/df['MC124']
     df['MC174'] = (df['MC174 Dir.E Lkw']+df['MC174 Dir.W Lkw']+
         df['MC174 Dir.E Pkw']+df['MC174 Dir.W Pkw'])
+    df['MC174_passenger'] = (df['MC174 Dir.E Pkw']+df['MC174 Dir.W Pkw'])    
+    df['MC174_freight'] = (df['MC174 Dir.E Lkw']+df['MC174 Dir.W Lkw'])        
     df['MC174_FracHDV'] = (df['MC174 Dir.E Lkw']+df['MC174 Dir.W Lkw']
         )/df['MC174']
     df['MC220'] = (df['MC220 Dir.N Lkw']+df['MC220 Dir.S Lkw']+
         df['MC220 Dir.N Pkw']+df['MC220 Dir.S Pkw'])
+    df['MC220_passenger'] = (df['MC220 Dir.N Pkw']+df['MC220 Dir.S Pkw'])    
+    df['MC220_freight'] = (df['MC220 Dir.N Lkw']+df['MC220 Dir.S Lkw'])        
     df['MC220_FracHDV'] = (df['MC220 Dir.N Lkw']+df['MC220 Dir.S Lkw']
         )/df['MC220']
     df['MC143'] = (df['MC143 Dir.E Lkw']+df['MC143 Dir.W Lkw']+
         df['MC143 Dir.E Pkw']+df['MC143 Dir.W Pkw'])
+    df['MC143_passenger'] = (df['MC143 Dir.E Pkw']+df['MC143 Dir.W Pkw'])    
+    df['MC143_freight'] = (df['MC143 Dir.E Lkw']+df['MC143 Dir.W Lkw'])        
     df['MC143_FracHDV'] = (df['MC143 Dir.E Lkw']+df['MC143 Dir.W Lkw']
         )/df['MC143']
     # Drop all summed mean hourly speed values per direction and directional 
@@ -90,14 +100,28 @@ def read_berlin(startdate, enddate):
     df = df.drop(pd.date_range('2020-07-01','2020-07-03'), errors='ignore')
     # Create column for fraction of heavy-duty vehicles
     df['Frac_HDV'] = np.nan
-    # Find fraction of heavy-duty vehicles at each site/date
+    df['Passenger'] = np.nan
+    df['Freight'] = np.nan    
+    # Kludgy
     for index, row in df.iterrows():
         if 'FracHDV' in row['Site']:
             frac = row['Count']
             df.loc[(df['Site']==row['Site'][:5]) & (df.index==index), 
                 'Frac_HDV'] = frac
+    for index, row in df.iterrows():
+        if 'passenger' in row['Site']:
+            frac = row['Count']
+            df.loc[(df['Site']==row['Site'][:5]) & (df.index==index), 
+                'Passenger'] = frac       
+    for index, row in df.iterrows():
+        if 'freight' in row['Site']:
+            frac = row['Count']
+            df.loc[(df['Site']==row['Site'][:5]) & (df.index==index), 
+                'Freight'] = frac                   
     # Drop dummy columns
     df = df[~df.Site.str.contains('FracHDV')]
+    df = df[~df.Site.str.contains('passenger')]
+    df = df[~df.Site.str.contains('freight')]
     df = df.loc[startdate:enddate]
     return df
 
@@ -578,7 +602,7 @@ def read_applemobility(start, end):
             city.groupby(by='Date').mean().reset_index()
         city['Date'] = pd.to_datetime(city['Date'])
         city.set_index('Date', drop=True, inplace=True)
-        if pd.to_datetime(start) < city.index[0] is True: 
+        if (pd.to_datetime(start) < pd.to_datetime(city.index[0].strftime('%Y-%m-%d')))==True: 
             # Select quasi-pre-lockdown information
             pre = city.loc['2020-01-13':'2020-02-29'].copy()
             # Find days of week corresponding to days
@@ -596,11 +620,227 @@ def read_applemobility(start, end):
             # Merge DataFrames 
             dummy = dummy.drop(['day_of_week'], axis=1)
             dummy.set_index('Date', drop=True, inplace=True)
-            city = pd.concatenate([city, dummy])
             city = pd.concat([dummy, city])
         # Select date range
         city = city.loc[start:end]
         city['city'] = cityname
         mobility.append(city)
     mobility = pd.concat(mobility)
-    return
+    return mobility
+
+def read_losangeles(): 
+    """FUNCTION NEEDS TO BE DEBUGGED
+    
+    Returns
+    -------
+    None.
+    """
+    import requests
+    import numpy as np
+    import pandas as pd
+    import glob
+    # # # # Open siting information (files with prefix 
+    # all_text_tmg_locations)
+    sitecolnames = ['Location ID', # Unique identifier generated by 
+        # rc_location_seq	 
+     	'Segment ID', # Pointer to route_carriageway_segments	 
+     	'State Postmile', # State Postmile	 
+     	'Absolute Postmile', # Absolute Postmile	 
+     	'Latitude',	# Latitude	 
+     	'Longitude', # Longitude	 
+     	'Angle', # Used to project icons next to the freeway	 
+     	'Name',	# Free form text description of the location.	 
+     	'Abbrev', # Brief text description of the location.	 
+     	'Freeway ID', # Freeway ID	 
+     	'Freeway Direction', # A string indicating the freeway direction.	 
+     	'District ID', # A string indicating the district.	 
+     	'County ID', # A string indicating the county.	 
+     	'City ID'] # A string indicating the city.	
+    # From a **painstaking** comparison of the truck census file and the
+    # location file, the two need to be matched on:
+    # Absolute Postmile
+    # Freeway Identifier
+    # Freeway Direction
+    # County Identifier
+    # District Identifier  
+    fname = '/Users/ghkerr/Downloads/all_text_tmg_station_configs_2019_01_01/'+\
+        'all_text_tmg_locations_2019_01_01.txt'
+    sites = pd.read_csv(fname, names=sitecolnames, header=None)
+    
+    # Field Specification (with typos fixed and weird repeated columns 
+    # deleted!) from pems.dot.ca.gov for Census Trucks Day. Data from 
+    # pems.dot.ca.gov -> Data Clearinghouse -> Census Trucks Day -> 
+    colnames = ['Timestamp', # The date and time of the beginning 
+        # of the summary interval. For example, a date of 1/1/2012 indicates 
+        # that the aggregate(s) contain measurements collected between 1/1/2012
+        # 00:00:00 and 1/1/2012 23:59:59. Note that hour, minute, and second 
+        # values are always 0 for daily aggregations. The format is MM/DD/YYYY
+        # HH24:MI:SS.	 
+        'Census Station Identifier', # The unique number that identifies this 
+        # census station within PeMS.	 
+        'Census Substation Identifier',	# The unique number that identifies this 
+        # census substation within PeMS.	 
+        'Freeway Identifier', # The unique number that identifies this 
+        # freeway within PeMS.	 
+        'Freeway Direction', # A string indicating the freeway direction.	 
+        'City Identifier',	# The unique number that identifies the city 
+        # that contains this census station within PeMS.	 
+        'County Identifier', # The unique number that identifies the county 
+        # that contains this census station within PeMS.	 
+        'District Identifier',	# The unique number that identifies the Caltrans 
+        # distrcit that contains this census station within PeMS.	 
+        'Absolute Postmile', # The postmile where this census station is 
+        # located.	 
+        'Station Type',	# A string indicating the type of station. Possible 
+        # values (and their meaning are:
+        # CD (Coll/Dist)
+        # CH (Conventional Highway)
+        # FF (Fwy-Fwy connector)
+        # FR (Off Ramp)
+        # HV (HOV)
+        # ML (Mainline)
+        # OR (On Ramp)
+        'Census Station Set ID', # The unique number that identifies the 
+        # census station set within PeMS.	 
+        'Lane Number', # The lane number	 
+        'Vehicle Class', # The vehicle class	 
+        'Vehicle Count', # The vehicle count	 
+        'Average Speed',# The average speed observed for this vehicle class 
+        # during the summary interval.	MPH
+        'Violation Count',	# The number of violations observed during his 
+        # summary interval.	 
+        'Violation Codes',	# A set of tuples of the form 'violation code' 
+        # = 'count': ...	 
+        'Single Axle Count', # The single axle count	 
+        'Tandem Axle Count', # Tandem axle count	 
+        'Tridem Axle Count', # The tridem axle count	   
+        'Quad Axle Count', # The quad axle count	    
+        'Average Gross Weight',	 # The average gross weight	unknown   
+        'Gross Weight Distribution', # The gross weight distribution	    
+        'Average Single Weight', # The average single weight	    
+        'Average Tandem Weight', # The average tandem weight	 
+        'Average Tridem Weight', # The average tridem weight	 
+        'Average Quad Weight', # The average quad weight	    
+        'Average Vehicle Length', # The average vehicle length	 
+        'Vehicle Length Distribution', # The vehicle length distribution	 
+        'Average Tandem Spacing',# The average tandem spacing	 
+        'Average Tridem Spacing',# The average tridem spacing	 
+        'Average Quad Spacing',	# The average quad spacing	 
+        'Average Wheelbase', # The average wheelbase	 
+        'Wheelbase Distribution', #The wheelbase distribution
+        'Total Flex ESAL 300', # Total Flex ESAL 300	 
+        'Total Flex ESAL 285', # Total Flex ESAL 285	 
+        'Total Rigid ESAL 300', # Total Rigid ESAL 300	 
+        'Total Rigid ESAL 285'] # Total Rigid ESAL 285
+    
+    # Open files for 2019-2020
+    path = DIR_MOBILITY+'losangeles/'
+    all_files = glob.glob(path + '/*.txt')
+    all_files.sort()
+    df = []
+    for fname in all_files:
+        li = pd.read_csv(fname, names=colnames, header=None)
+        df.append(li)
+    df = pd.concat(df, axis=0, ignore_index=True)    
+    # Add empty rows for latitude, longitude
+    df['Latitude'], df['Longitude'] = np.nan, np.nan
+    
+    # Information about vehicle size class comes from 
+    # https://en.wikipedia.org/wiki/Vehicle_size_class:
+    # 1:    Motorcycles
+    # 2:	Passenger Cars 
+    # 3:	Other Two-Axle Four-Tire Single-Unit Vehicles
+    # 4:	Buses
+    # 5:	Two-Axle, Six-Tire, Single-Unit Trucks
+    # 6:	Three-Axle Single-Unit Trucks
+    # 7:	Four or More Axle Single-Unit Trucks
+    # 8:    Four or Fewer Axle Single-Trailer Trucks
+    # 9:    Five-Axle Single-Trailer Trucks	
+    # 10:	Six or More Axle Single-Trailer Trucks	
+    # 11:	Five or Fewer Axle Multi-Trailer Trucks	
+    # 12:	Six-Axle Multi-Trailer Trucks
+    # 13:	Seven or More Axle Multi-Trailer
+    # 14:	Unused	----	----
+    # 15:	Unclassified Vehicle
+    # Check out this infographic too: 
+    # http://onlinemanuals.txdot.gov/txdotmanuals/tri/images/FHWA_Classification_Chart_FINAL.png
+    
+    # From a quick inspection of "Census Station Identifier" 129000 summed
+    # over January 2019, here's the distribution:
+    # vclass = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
+    # counts = [0.0,12026.0,63916.0,15304.0,190176.0,40634.0,13424.0,
+    #     29278.0,221582.0,782.0,9430.0,2028.0,152.0,9842.0,12122.0]
+    # plt.bar(vclass,counts)
+    # plt.xlim([1,16])
+    # plt.xticks(np.arange(1,16,1))
+    # plt.show()
+    # So the largest contributors: 3 (two-axle four tire vehicles), 
+    # 5 (two axle, six-tire trucks), and 9 (five-axle single-trailer trucks)
+    losangeles = ['06037','06059']
+    # Identify a station by the "Census Station Identifier". Note that each 
+    # census station identifier has a couple substation identifiers associated 
+    # with it (corresponding to a North and South Directions). Additionally, 
+    # all station identifiers should have identical County Identifier,
+    # District Identifier, and Absolute Postmile.
+    latraf = []
+    for stationid in np.unique(df['Census Station Identifier'].values):
+        station = df.loc[df['Census Station Identifier']==stationid].copy()
+        # Get unique match/join values 
+        abs_post = np.unique(station['Absolute Postmile'].values)
+        free_id = np.unique(station['Freeway Identifier'].values)
+        free_direction = np.unique(station['Freeway Direction'].values)
+        county_id = np.unique(station['County Identifier'].values)
+        district_id = np.unique(station['District Identifier'].values)
+        # Find siting information from siteinfo DataFrame using match/join
+        # values
+        siteinfo = sites.loc[
+            (sites['Freeway ID'].isin(free_id)) &
+            (sites['Freeway Direction'].isin(free_direction)) &
+            (sites['County ID'].isin(county_id)) &
+            (sites['District ID'].isin(district_id))]
+        # Since the absolute postmile parameter is wonky and sometimes doesn't
+        # match between the traffic data and site information, deal with 
+        # this parameter differently 
+        lattemp, lngtemp = [], []
+        for ap in abs_post:
+            siteinfo_ap = siteinfo.iloc[(siteinfo['Absolute Postmile']-ap
+                ).abs().argsort()[:1]]
+            lattemp.append(siteinfo_ap['Latitude'].values[0])
+            lngtemp.append(siteinfo_ap['Longitude'].values[0])
+        # Ensure that stations (if > 1 exists on N/S freeway directions) are
+        # close to each other. This step is a bit kludgy
+        # if ((np.ptp(lattemp) > 0.1) or (np.ptp(lngtemp) > 0.01)):
+        #     print('Lat and/or lon for different highway directions at '+
+        #         'Census Station Identifier %s are > 0.01 deg apart!'%(
+        #         station['Census Station Identifier'].values[0]))
+        # Fetch FIPS census block number based on census station 
+        # latitude/longitude
+        response = requests.get('https://geo.fcc.gov/api/census/block/'+
+            'find?latitude=%s&longitude=%s&format=json'%(
+            np.nanmean(lattemp), np.nanmean(lngtemp)))
+        fips = response.json()['Block']['FIPS']
+        # Lob off state + county code (first five digits) from FIPS
+        fips = fips[:5]
+        if fips in losangeles:
+            # Group by date and vehicle class (i.e., combine over lane 
+            # direction and lane number)
+            station = station.groupby(by=['Timestamp','Vehicle Class']).agg(
+                {'Vehicle Count':'sum'})
+            station = station.reset_index()
+            # Pivot table 
+            station = station.pivot(index='Timestamp', columns='Vehicle Class', 
+                values='Vehicle Count')
+            station.columns = station.columns.map(str)
+            # Sum over total vehicle count, passenger vehicles, and freight
+            station['Count'] = station.loc[:,'0':'15'].sum(axis=1)
+            station['Passenger'] = station.loc[:,'0':'5'].sum(axis=1)
+            station['Freight'] = station.loc[:,'6':'15'].sum(axis=1)
+            # Drop unneeded columns
+            station = station[['Count','Passenger','Freight']]
+            station['Site'] = stationid
+            station['Latitude'] = np.nanmean(lattemp)
+            station['Longitude'] = np.nanmean(lngtemp)
+            station.index = pd.to_datetime(station.index)
+            latraf.append(station)
+    latraf = pd.concat(latraf, axis=0)
+    df.rename(columns={'Datum':'Date'}, inplace=True)
