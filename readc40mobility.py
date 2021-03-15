@@ -222,8 +222,9 @@ def read_milan(startdate, enddate):
         'Traffic data Milan_AMAT_01_01_2019_31_10_2020.xlsx', 
         sheet_name='AreaC - % LDV_HDV', header=0)
     df = df.rename(columns={'date':'Date', 
-        'Area C entering vehicles':'Count', '%HDV':'Frac_HDV'})
-    df = df.drop(['%LDV', 'LDV', 'HDV'], axis=1)
+        'Area C entering vehicles':'Count', '%HDV':'Frac_HDV', 
+        'HDV':'Freight', 'LDV':'Passenger'})
+    df = df.drop(['%LDV'], axis=1)
     # Since these values only represent one site, make a dummy column to 
     # represent this one site (to be consistent with standardized format)
     df['Site'] = 'AreaC'    
