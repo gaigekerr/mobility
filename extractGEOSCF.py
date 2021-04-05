@@ -8,6 +8,7 @@ CSV files, where each column corresponds to a variable of interest.
 DIR = '/GWSPH/groups/anenberggrp/ghkerr/'
 DIR_GEOSCF = DIR+'data/GEOSCF/'
 DIR_EEA = DIR+'data/EEA/'
+DIR_OPENAQ = DIR+'data/openaq/'
 DIR_OUT = DIR_GEOSCF
 
 collection = 'aqc'
@@ -26,9 +27,12 @@ import glob
 import numpy as np
 import xarray as xr
 import pandas as pd
-# # # # FOR MAJOR CITIES IN THE EUROPEAN UNION (AND ISTANBUL?)
+# # # # FOR MAJOR CITIES IN THE EUROPEAN UNION
 # Open all coordinate information from EEA stations in major European cities
 coords_eea = pd_read_pattern(DIR_EEA+'*_coords.csv')
+# # # # FOR OPENAQ obs
+coords_openaq = pd_read_pattern(DIR_OPENAQ+'*_coords.csv')
+
 # # # # FOR C40 CITIES 
 # This part of the code is a little kludgey and is run locally before 
 # running on Pegasus. It finds the coordinates of air quality observing 
@@ -282,6 +286,20 @@ coords_c40 = pd.DataFrame([
     (174.74884838, -36.78025339, 'Auckland C40')],
     columns=['Longitude', 'Latitude', 'City'])
 
+# # Check locations of sites
+# import matplotlib.pyplot as plt
+# import cartopy.crs as ccrs
+# fig = plt.figure(figsize=(10, 5))
+# ax = fig.add_subplot(1, 1, 1, projection=ccrs.Robinson())
+# ax.set_global()
+# ax.coastlines()
+# ax.plot(coords_openaq['Longitude'].values, coords_openaq['Latitude'].values, 
+#     'ro', markersize=2, transform=ccrs.PlateCarree())
+# ax.plot(coords_c40['Longitude'].values, coords_c40['Latitude'].values, 
+#     'bo', markersize=2, transform=ccrs.PlateCarree())
+# ax.plot(coords_eea['Longitude'].values, coords_eea['Latitude'].values, 
+#     'ko', markersize=2, transform=ccrs.PlateCarree())
+
 # Open all aqc GEOSCF files 
 if collection=='aqc':
     pattern = 'aqc_tavg_1hr/GEOS-CF.v01.rpl.aqc_tavg_1hr_g1440x721_v1.*.nc'
@@ -292,7 +310,7 @@ if collection=='met':
 print('GEOS-CF opened with dimensions of...', geoscf.dims)
 # Combine C40/EEA stations in a single DataFrame
 aqlocs = pd.concat([coords_eea[['Longitude','Latitude','City']], 
-    coords_c40])
+    coords_openaq[['Longitude','Latitude','City']], coords_c40])
 
 # This is the main loop to loop over the air monitoring statinos and pick 
 # off the closet GEOS-CF grid cell
@@ -391,228 +409,6 @@ for index, row in aqlocs.iterrows():
         df.append(df_in)
 df = pd.concat(df)
 if collection=='aqc':
-    df.to_csv(DIR_OUT+'aqc_tavg_1d_cities.csv', index=False)
+    df.to_csv(DIR_OUT+'aqc_tavg_1d_cities_v2openaq.csv', index=False)
 if collection=='met':
-    df.to_csv(DIR_OUT+'met_tavg_1d_cities.csv', index=False)
-
-# lngs = [lng_los_in, lng_mex_in, lng_san_in, lng_ber_in, lng_lon_in, 
-#     lng_mil_in, lng_auc_in]
-# lats = [lat_los_in, lat_mex_in, lat_san_in, lat_ber_in, lat_lon_in, 
-#     lat_mil_in, lat_auc_in]
-# cities = ['Los Angeles', 'Mexico City', 'Santiago', 'Berlin', 'London', 
-#     'Milan', 'Auckland']
-# Open all met GEOSCF files 
-# df = []
-# lngs = [lng_los_in, lng_mex_in, lng_san_in, lng_ber_in, lng_lon_in, 
-#     lng_mil_in, lng_auc_in]
-# lats = [lat_los_in, lat_mex_in, lat_san_in, lat_ber_in, lat_lon_in, 
-#     lat_mil_in, lat_auc_in]
-# cities = ['Los Angeles', 'Mexico City', 'Santiago', 'Berlin', 'London', 
-#     'Milan', 'Auckland']
-# for ci in np.arange(0, len(lngs), 1):
-#     print('Handling MET for %s...'%(cities[ci]))    
-#     lat_in = lats[ci]
-#     lng_in = lngs[ci]
-#     city = cities[ci]
-#     geoscf_in = geoscf.sel(lat=lat_in, lon=lng_in, method="nearest")
-#     geoscf_in = geoscf_in.resample(time='1D').mean()
-#     geoscf_in = geoscf_in.compute()
-#     # Extract everything but phis (surface geopotential height), troppb
-#     # (tropopause_pressure_based_on_blended_estimate), zl 
-#     # (mid_layer_heights)
-#     time_in = geoscf_in.time.data
-#     lat_in = geoscf_in.lat.data
-#     lng_in = geoscf_in.lon.data
-#     cldtt_in = geoscf_in.CLDTT.data
-#     ps_in = geoscf_in.PS.data
-#     q_in = geoscf_in.Q.data
-#     q10m_in = geoscf_in.Q10M.data
-#     q2m_in = geoscf_in.Q2M.data
-#     rh_in = geoscf_in.RH.data
-#     slp_in = geoscf_in.SLP.data
-#     t_in = geoscf_in.T.data
-#     t10m_in = geoscf_in.T10M.data
-#     t2m_in = geoscf_in.T2M.data
-#     tprec_in = geoscf_in.TPREC.data
-#     ts_in = geoscf_in.TS.data
-#     u_in = geoscf_in.U.data
-#     u10m_in = geoscf_in.U10M.data
-#     u2m_in = geoscf_in.U2M.data
-#     v_in = geoscf_in.V.data
-#     v10m_in = geoscf_in.V10M.data
-#     v2m_in = geoscf_in.V2M.data
-#     zpbl_in = geoscf_in.ZPBL.data
-#     time_in_grid, lat_in_grid, lng_in_grid = [x.flatten() for x in 
-#         np.meshgrid(time_in, lat_in, lng_in, indexing='ij')]
-#     df_in = pd.DataFrame({
-#         'time': [t for t in time_in_grid],
-#         'latitude': lat_in_grid,
-#         'longitude': lng_in_grid,
-#         'CLDTT': cldtt_in[:].flatten(),
-#         'PS':ps_in[:].flatten(),
-#         'Q':q_in[:].flatten(),
-#         'Q10M':q10m_in[:].flatten(),
-#         'Q2M':q2m_in[:].flatten(),
-#         'RH':rh_in[:].flatten(),
-#         'SLP':slp_in[:].flatten(),
-#         'T':t_in[:].flatten(),
-#         'T10M':t10m_in[:].flatten(),
-#         'T2M':t2m_in[:].flatten(),
-#         'TPREC':tprec_in[:].flatten(),
-#         'TS':ts_in[:].flatten(),
-#         'U':u_in[:].flatten(),
-#         'U10M':u10m_in[:].flatten(),
-#         'U2M':u2m_in[:].flatten(),
-#         'V':v_in[:].flatten(),
-#         'V10M':v10m_in[:].flatten(),
-#         'V2M':v2m_in[:].flatten(),
-#         'ZPBL':zpbl_in[:].flatten(),        
-#         'city':city})    
-#     df.append(df_in)
-# df = pd.concat(df)
-# df.to_csv(DIR_OUT+'met_tavg_1d_cities.csv', index=False)
-# del geoscf, df
-# # Find nearest GEOS-CF grid cell for all EEA stations
-# cities, lat_eeaatgc, lng_eeaatgc = [], [], []
-# for index, row in coords_eea.iterrows():
-#     lat_nearest = lat_gc[np.abs(lat_gc-row['Latitude']).argmin()]
-#     lng_nearest = lng_gc[np.abs(lng_gc-row['Longitude']).argmin()]
-#     city = row['City']
-#     # Append values to multi-city list
-#     lat_eeaatgc.append(lat_nearest)
-#     lng_eeaatgc.append(lng_nearest)    
-#     cities.append(city)
-# # import cartopy.crs as ccrs
-# # import shapely.ops as so
-# # from cartopy.io import shapereader
-# # from fiona.crs import from_epsg
-# # from shapely.geometry import Point
-# # This part of the code can be run offline (i.e., prior to parsing 
-# # out all the GEOS-CF files). Essentially the shapefiles of the outlines 
-# # from the MSAs are computed and any points located within the MSA are 
-# # saved off. 
-# # # # # # Los Angeles
-# # filename = DIR_GEOGRAPHY+'losangeles/County_Boundaries-shp/County_Boundaries.shp'
-# # shp = shapereader.Reader(filename)
-# # losangeles = shp.geometries()
-# # losangeles = list(losangeles)
-# # rec = shp.records()
-# # rec = list(rec)
-# # losangeles = so.cascaded_union([losangeles[1],losangeles[8],losangeles[9]])
-# # lat_los_in, lng_los_in = [], []
-# # for ilat in lat_gc:
-# #     for ilng in lng_gc: 
-# #         point = Point(ilng, ilat)
-# #         if losangeles.contains(point) is True:
-# #             lat_los_in.append(ilat)
-# #             lng_los_in.append(ilng)        
-# # lat_los_in = np.unique(lat_los_in)
-# # lng_los_in = np.unique(lng_los_in)
-# # lat_los_in = np.array([33.75, 34., 34.25, 34.5, 34.75])
-# # lng_los_in = np.array([-118.75, -118.5, -118.25, -118., -117.75])
-# # # # # # Mexico City
-# # filename = DIR_GEOGRAPHY+'mexicocity/'+'cdmx_transformed.shp'
-# # shp = shapereader.Reader(filename)
-# # cdmx = shp.geometries()
-# # cdmx = list(cdmx)[566]
-# # lat_mex_in, lng_mex_in = [], []
-# # for ilat in lat_gc:
-# #     for ilng in lng_gc: 
-# #         point = Point(ilng, ilat)
-# #         if cdmx.contains(point) is True:
-# #             lat_mex_in.append(ilat)
-# #             lng_mex_in.append(ilng)        
-# # lat_mex_in = np.unique(lat_mex_in)
-# # lng_mex_in = np.unique(lng_mex_in)
-# lat_mex_in = np.array([19.5])
-# lng_mex_in = np.array([-99.25])
-# # # # # # Santiago
-# # filename = DIR_GEOGRAPHY+'santiago/'+'chl_admbnda_adm1_bcn2018.shp'
-# # shp = shapereader.Reader(filename)
-# # santiago = shp.geometries()
-# # santiago = list(santiago)[-1]
-# # lat_san_in, lng_san_in = [], []
-# # for ilat in lat_gc:
-# #     for ilng in lng_gc: 
-# #         point = Point(ilng, ilat)
-# #         if santiago.contains(point) is True:
-# #             lat_san_in.append(ilat)
-# #             lng_san_in.append(ilng)   
-# # lat_san_in = np.unique(lat_san_in)
-# # lng_san_in = np.unique(lng_san_in)
-# lat_san_in = np.array([-34.25, -34., -33.75, -33.5, -33.25, -33.])
-# lng_san_in = np.array([-71.25, -71., -70.75, -70.5, -70.25, -70.])
-# # # # # # Berlin
-# # filename = DIR_GEOGRAPHY+'berlin/'+\
-# #     'GISPORTAL_GISOWNER01_BERLIN_BEZIRKE_BOROUGHS01.shp'
-# # shp = shapereader.Reader(filename)
-# # berlin = shp.geometries()
-# # berlin = list(berlin)
-# # berlin = so.cascaded_union(berlin)
-# # lat_ber_in, lng_ber_in = [], []
-# # for ilat in lat_gc:
-# #     for ilng in lng_gc: 
-# #         point = Point(ilng, ilat)
-# #         if berlin.contains(point) is True:
-# #             lat_ber_in.append(ilat)
-# #             lng_ber_in.append(ilng)   
-# # lat_ber_in = np.unique(lat_ber_in)
-# # lng_ber_in = np.unique(lng_ber_in)
-# lat_ber_in = np.unique([52.5])
-# lng_ber_in = np.unique([13.25, 13.5])
-# # # # # # London
-# # filename = DIR_GEOGRAPHY+'london/'+'london_transformed.shp'
-# # shp = shapereader.Reader(filename)
-# # london = shp.geometries()
-# # london = list(london)
-# # london = so.cascaded_union(london) 
-# # lat_lon_in, lng_lon_in = [], []
-# # for ilat in lat_gc:
-# #     for ilng in lng_gc: 
-# #         point = Point(ilng, ilat)
-# #         if london.contains(point) is True:
-# #             lat_lon_in.append(ilat)
-# #             lng_lon_in.append(ilng)   
-# # lat_lon_in = np.unique(lat_lon_in)
-# # lng_lon_in = np.unique(lng_lon_in)
-# lat_lon_in = np.array([51.5])
-# lng_lon_in = np.array([-2.50000000e-01, -1.45115289e-12])
-# # # # # # Milan 
-# # filename = DIR_GEOGRAPHY+'milan/'+'pd101kz6162.shp'
-# # shp = shapereader.Reader(filename)
-# # milan = shp.geometries()
-# # milan = list(milan)[0]
-# # lat_mil_in, lng_mil_in = [], []
-# # for ilat in lat_gc:
-# #     for ilng in lng_gc: 
-# #         point = Point(ilng, ilat)
-# #         if milan.contains(point) is True:
-# #             lat_mil_in.append(ilat)
-# #             lng_mil_in.append(ilng)   
-# # lat_mil_in = np.unique(lat_mil_in)
-# # lng_mil_in = np.unique(lng_mil_in)
-# lat_mil_in = np.array([45.5, 45.75])
-# lng_mil_in = np.array([9., 9.25])
-# # # # # Auckland 
-# # filename = DIR_GEOGRAPHY+'auckland/'+'NZL_adm1.shp'
-# # shp = shapereader.Reader(filename)
-# # auckland_all = shp.geometries()
-# # auckland = list(auckland_all)[0]
-# # lat_auc_in, lng_auc_in = [], []
-# # for ilat in lat_gc:
-# #     for ilng in lng_gc: 
-# #         point = Point(ilng, ilat)
-# #         if auckland.contains(point) is True:
-# #             lat_auc_in.append(ilat)
-# #             lng_auc_in.append(ilng)
-# # lat_auc_in = np.unique(lat_auc_in)
-# # lng_auc_in = np.unique(lng_auc_in)
-# lat_auc_in = np.array([-37.25, -37.  , -36.75, -36.5 , -36.25])
-# lng_auc_in = np.array([174.25, 174.5 , 174.75, 175.  , 175.25])
-
-# import netCDF4 as nc
-# # Open a random GEOSCF file to extract coordinate information
-# grid = nc.Dataset(DIR_GEOSCF+
-#     'GEOS-CF.v01.rpl.aqc_tavg_1hr_g1440x721_v1.20190501.nc', 'r')
-# lat_gc = grid.variables['lat'][:]
-# lng_gc = grid.variables['lon'][:]
+    df.to_csv(DIR_OUT+'met_tavg_1d_cities_v2openaq.csv', index=False)
