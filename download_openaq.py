@@ -65,7 +65,7 @@ cities = [['AR', ['Buenos Aires'], 'Buenos Aires'],
     #   'New Territories', 'New Territories', 'Tap Mun Police Post',
     #   'New Territories', 'New Territories', 'Eastern', 'N.T.'], 'Hong Kong'],
     ['IE', ['Dublin City'], 'Dublin'],
-    #['IN', ['Mumbai','Navi Mumbai'], 'Dehli'], 
+    ['IN', ['Mumbai','Navi Mumbai'], 'Delhi'], 
     #['IL', ['ירושלים'], 'Jerusalem'],
     #['IS', ['Reykjavík'], 'Reykjavik'],
     ['LU', ['Luxemburg'], 'Luxembourg'],
@@ -195,6 +195,8 @@ for index, row in cities.iterrows():
         # longitude coordinates aren't correct)
         merged['Longitude'] = merged['Longitude'].apply(lambda x: round(x, 4))        
         merged['Latitude'] = merged['Latitude'].apply(lambda x: round(x, 4))
+        # Add city name column 
+        merged['City'] = row['English Name']
         # Save off latitude and longitude coordinates for sampling the
         # GEOSCF model for machine learning (as with EEA))   
         uniquecoords = merged.groupby(['Longitude','Latitude']).size(
