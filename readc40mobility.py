@@ -540,14 +540,25 @@ def read_applemobility(start, end):
     import pandas as pd
     df = pd.read_csv(DIR_MOBILITY+'applemobilitytrends-2020-12-12.csv', 
         delimiter=',', engine='python')
-    station_city = ['Berlin', 'Madrid', 'Athens', 'Rome', 'Bucharest', 
-        'Paris', 'Vienna', 'Hamburg', 'Warsaw', 'Budapest', 'Barcelona', 
-        'Munich', 'Milan', 'Prague',  'Sofia', 'Cologne', 'Stockholm', 
-        'Naples', 'Turin', 'Amsterdam', 'Marseille', 'Zagreb', 'Copenhagen', 
-        'Valencia', 'Krakow', 'Frankfurt', 'Seville', 'Lodz', 'Saragossa', 
-        'Palermo', 'Rotterdam', 'Helsinki', 'Wroclaw', 'Stuttgart', 'Riga', 
-        'Dusseldorf', 'Vilnius', 'London', 'Auckland', 'Mexico City', 
-        'Santiago', 'Los Angeles']
+    # station_city = ['Berlin', 'Madrid', 'Athens', 'Rome', 'Bucharest', 
+    #     'Paris', 'Vienna', 'Hamburg', 'Warsaw', 'Budapest', 'Barcelona', 
+    #     'Munich', 'Milan', 'Prague',  'Sofia', 'Cologne', 'Stockholm', 
+    #     'Naples', 'Turin', 'Amsterdam', 'Marseille', 'Zagreb', 'Copenhagen', 
+    #     'Valencia', 'Krakow', 'Frankfurt', 'Seville', 'Lodz', 'Saragossa', 
+    #     'Palermo', 'Rotterdam', 'Helsinki', 'Wroclaw', 'Stuttgart', 'Riga', 
+    #     'Dusseldorf', 'Vilnius', 'London', 'Auckland', 'Mexico City', 
+    #     'Santiago', 'Los Angeles']
+    
+    station_city = ['Amsterdam', 'Athens', 'Auckland', 'Bangkok', 'Barcelona',
+       'Belgrade', 'Berlin', 'Bratislava', 'Brussels', 'Bucharest',
+       'Budapest', 'Cologne', 'Copenhagen', 'Dublin', 'Dusseldorf',
+       'Frankfurt', 'Hamburg', 'Helsinki', 'Krakow', 'Lodz', 'London', 
+       'Los Angeles', 'Luxembourg', 'Madrid', 'Marseille', 'Medellin',
+       'Mexico City', 'Milan', 'Montreal', 'Mumbai', 'Munich', 'Naples',
+       'Oslo', 'Palermo', 'Paris', 'Prague', 'Riga', 'Rome', 'Rotterdam',
+       'Santiago', 'Saragossa', 'Seville', 'Sofia', 'Stockholm',
+       'Stuttgart', 'Sydney', 'Taipei City', 'Turin', 'Valencia',
+       'Vienna', 'Vilnius', 'Warsaw', 'Wroclaw', 'Zagreb', 'Zurich']  
     mobility = []
     # Select region of interest and the driving timeseries; note that the if/
     # elif statements are for cities that do not have their own timeseries in 
@@ -579,6 +590,25 @@ def read_applemobility(start, end):
         elif cityname=='Vilnius':
             city = df.loc[(df['geo_type']=='country/region') & (df['region'
             ]=='Lithuania') & (df['transportation_type']=='driving')]
+        elif cityname=='Belgrade':
+            city = df.loc[(df['geo_type']=='country/region') & (df['region'
+            ]=='Serbia') & (df['transportation_type']=='driving')]            
+        elif cityname=='Bratislava':
+            city = df.loc[(df['geo_type']=='sub-region') & (df['region'
+            ]=='Bratislava Region') & (df['transportation_type']=='driving')]
+        elif cityname=='Taipei City':
+            city = df.loc[(df['geo_type']=='sub-region') & (df['region'
+            ]=='Taipei City') & (df['transportation_type']=='driving')]
+        elif cityname=='Medellin':
+            city = df.loc[(df['geo_type']=='country/region') & (df['region'
+            ]=='Colombia') & (df['transportation_type']=='driving')]        
+        elif cityname=='Luxembourg':
+            city = df.loc[(df['geo_type']=='sub-region') & (df['region'
+            ]=='Luxembourg District') & (df['transportation_type']=='driving')]        
+        elif cityname=='Dublin':
+            city = df.loc[(df['geo_type']=='city') & (df['region'
+            ]=='Dublin') & (df['transportation_type']=='driving') &
+            (df['country']=='Ireland')]                            
         elif cityname=='Los Angeles':
             # Los Angeles metropolitan area is comprised of Los Angeles and 
             # Orange counties
@@ -586,16 +616,17 @@ def read_applemobility(start, end):
                 'Los Angeles County','Orange County'])) & 
                 (df['sub-region']=='California') &
                 (df['transportation_type']=='driving')]
+            city = city.groupby('geo_type').mean()
         elif cityname=='Naples':
             city = df.loc[(df['geo_type']=='city') & (df['region']=='Naples') &
-                (df['country']=='United States') & (df['transportation_type'
+                (df['country']=='Italy') & (df['transportation_type'
                 ]=='driving')]
         else:     
             city = df.loc[(df['geo_type']=='city') & (df['region']==cityname) &
                 (df['transportation_type']=='driving')]
         todrop = ['geo_type', 'region', 'transportation_type', 'alternative_name',
             'sub-region', 'country']
-        city = city.drop(todrop, axis=1)
+        city = city.drop(todrop, axis=1, errors='ignore')
         city = pd.melt(city, var_name='Date', value_name='Volume')
         # If there are > 1 values per day (e.g., Los Angeles and Orange 
         # Counties for Los Angeles), compute a daily average
