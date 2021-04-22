@@ -65,7 +65,7 @@ cities = [['AR', ['Buenos Aires'], 'Buenos Aires'],
     #   'New Territories', 'New Territories', 'Tap Mun Police Post',
     #   'New Territories', 'New Territories', 'Eastern', 'N.T.'], 'Hong Kong'],
     ['IE', ['Dublin City'], 'Dublin'],
-    ['IN', ['Mumbai','Navi Mumbai'], 'Delhi'], 
+    ['IN', ['Mumbai','Navi Mumbai'], 'Mumbai']
     #['IL', ['ירושלים'], 'Jerusalem'],
     #['IS', ['Reykjavík'], 'Reykjavik'],
     ['LU', ['Luxemburg'], 'Luxembourg'],
