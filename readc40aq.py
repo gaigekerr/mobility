@@ -158,12 +158,15 @@ def read_auckland(pollutant, startdate, enddate):
         df.loc[(df.Site == site), 'Longitude'] = site_lng
     df.set_index('Date', drop=True, inplace=True)
     df = df.loc[startdate:enddate]    
+    # Add city column
+    df['City'] = 'Auckland C40'
     return df
 
 def read_santiago(pollutant, startdate, enddate):
     """Function reads air quality observations from stations around 
-    Santiago. Hourly observations are averaged to daily concentrations. Note 
-    that some stations record repeated 1.0 values - unsure what this is about.
+    Santiago for specified time periods between 2018 and February 2021. Hourly 
+    observations are averaged to daily concentrations. Note that some stations
+    record repeated 1.0 values - unsure what this is about.
     The output unit for NO2 is ppb, output units for O3 is ppb, and output
     units for PM2.5 is ug/m3. 
 
@@ -199,91 +202,34 @@ def read_santiago(pollutant, startdate, enddate):
         'Puente Alto':(-33.59135624038916, -70.59443067815702),
         'Talagante':(-33.67381931299035, -70.9529961584255),
         'Quilicura':(-33.3496312950099, -70.72384576583242)}
-    df = pd.DataFrame([])
     # For PM2.5
     if pollutant=='PM2.5':
-        # Format is really annoying. Columns A-L represent 2018, columns N-Y
-        # represent 2019, columns AA-AL represent 2020. Read in file three
-        # times and concatenate
-        for year, cols in zip([2018,2019,2020],['A:L','N:Y','AA:LL']):
-            dfty = pd.read_excel(DIR_AQ+'santiago/'+
-                'solicitud C40-MP2.5_NO2_O3_2018_2020_2.xlsx', 
-                sheet_name='MP2.5', header=0, usecols=cols)
-            # Rename columns 
-            if year==2018:
-                dfty.rename(columns={'MP2.5 (ug/m3)':'Date'}, inplace=True) 
-            if year==2019:
-                dfty.rename(columns={'Estación':'Date',
-                    'Independencia.1':'Independencia', 'La Florida.1':
-                    'La Florida', 'Las Condes.1':'Las Condes', 'Santiago.1':
-                    'Santiago', 'Pudahuel.1':'Pudahuel', 'Cerrillos.1':
-                    'Cerrillos', 'El Bosque .1':'El Bosque', 'Cerro Navia.1':
-                    'Cerro Navia', 'Puente Alto.1':'Puente Alto', 
-                    'Talagante.1':'Talagante', 'Quilicura.1':'Quilicura'}, 
-                    inplace=True)
-            if year==2020:
-                dfty.rename(columns={'Estación.1':'Date',
-                    'Independencia.2':'Independencia', 'La Florida.2':
-                    'La Florida', 'Las Condes.2':'Las Condes', 'Santiago.2':
-                    'Santiago', 'Pudahuel.2':'Pudahuel', 'Cerrillos.2':
-                    'Cerrillos', 'El Bosque .2':'El Bosque', 'Cerro Navia.2':
-                    'Cerro Navia', 'Puente Alto.2':'Puente Alto', 
-                    'Talagante.2':'Talagante', 'Quilicura.2':'Quilicura'}, 
-                    inplace=True)   
-            df = df.append(dfty, ignore_index=False)            
-    # For O3
+        df = pd.read_excel(DIR_AQ+'santiago/'+
+            'solicitud C40-MP2.5_NO2_O3_2018_2021 (rev23feb2021).xlsx', 
+            sheet_name='MP2.5', header=0)
+        df['Date'] = (pd.to_datetime(df['FECHA (YY/MM/DD)'], format='%y%m%d')+
+            pd.to_timedelta(df['HORA']/100., unit='h'))
+        df.rename(columns={'El Bosque ':'El Bosque'}, inplace=True)
+        del df['MP2.5 (ug/m3)'], df['AÑO'], df['FECHA (YY/MM/DD)'], df['HORA']
     if pollutant=='O3':
-        for year, cols in zip([2018,2019,2020],['A:J','L:U','W:AF']):
-            dfty = pd.read_excel(DIR_AQ+'santiago/'+
-                'solicitud C40-MP2.5_NO2_O3_2018_2020_2.xlsx', 
-                sheet_name='O3', header=0, usecols=cols)
-            if year==2018:
-                dfty.rename(columns={'O3 (ppb)':'Date',
-                    'El Bosque ':'El Bosque'}, inplace=True) 
-            if year==2019:
-                dfty.rename(columns={'ppm':'Date',
-                    'Independencia.1':'Independencia', 'La Florida.1':
-                    'La Florida', 'Las Condes.1':'Las Condes', 'Santiago.1':
-                    'Santiago', 'Pudahuel.1':'Pudahuel', 'El Bosque .1':
-                    'El Bosque', 'Cerro Navia.1':'Cerro Navia', 
-                    'Puente Alto.1':'Puente Alto', 'Talagante.1':
-                    'Talagante'}, inplace=True)
-            if year==2020:
-                dfty.rename(columns={'ppm.1':'Date',
-                    'Independencia.2':'Independencia', 'La Florida.2':
-                    'La Florida', 'Las Condes.2':'Las Condes', 'Santiago.2':
-                    'Santiago', 'Pudahuel.2':'Pudahuel', 'El Bosque .2':
-                    'El Bosque', 'Cerro Navia.2':'Cerro Navia', 
-                    'Puente Alto.2':'Puente Alto', 'Talagante.2':
-                    'Talagante'}, inplace=True)
-            df = df.append(dfty, ignore_index=False)
+        df = pd.read_excel(DIR_AQ+'santiago/'+
+            'solicitud C40-MP2.5_NO2_O3_2018_2021 (rev23feb2021).xlsx', 
+            sheet_name='O3', header=0)
+        df['Date'] = (pd.to_datetime(df['FECHA (YY/MM/DD)'], format='%y%m%d')+
+            pd.to_timedelta(df['HORA']/100., unit='h'))
+        df.rename(columns={'El Bosque ':'El Bosque'}, inplace=True)
+        del df['O3 (ppb)'], df['Año'], df['FECHA (YY/MM/DD)'], df['HORA']
     # For NO2
     if pollutant=='NO2':
-        for year, cols in zip([2018,2019,2020],['A:J','L:U','W:AD']):
-            dfty = pd.read_excel(DIR_AQ+'santiago/'+
-                'solicitud C40-MP2.5_NO2_O3_2018_2020_2.xlsx', 
-                sheet_name='NO2', header=0, usecols=cols)
-            if year==2018:
-                dfty.rename(columns={'NO2 (ppb)':'Date', 'El Bosque ':
-                    'El Bosque'}, inplace=True) 
-            if year==2019:
-                dfty.rename(columns={'ppb':'Date','Independencia.1':
-                    'Independencia', 'La Florida.1':'La Florida', 
-                    'Las Condes.1':'Las Condes', 'Santiago.1':'Santiago', 
-                    'Pudahuel.1':'Pudahuel', 'El Bosque .1':'El Bosque', 
-                    'Cerro Navia.1':'Cerro Navia', 'Puente Alto.1':
-                    'Puente Alto', 'Talagante.1':'Talagante'}, inplace=True)
-            if year==2020:
-                dfty.rename(columns={'ppb.1':'Date', 'La Florida.2':
-                    'La Florida', 'Las Condes.2':'Las Condes', 
-                    'Santiago.2':'Santiago', 'Pudahuel.2':'Pudahuel', 
-                    'El Bosque .2':'El Bosque', 'Cerro Navia.2':'Cerro Navia', 
-                    'Puente Alto.2':'Puente Alto'}, inplace=True)
-            df = df.append(dfty, ignore_index=False)
+        df = pd.read_excel(DIR_AQ+'santiago/'+
+            'solicitud C40-MP2.5_NO2_O3_2018_2021 (rev23feb2021).xlsx', 
+            sheet_name='NO2', header=0)
+        df['Date'] = (pd.to_datetime(df['FECHA (YY/MM/DD)'], format='%y%m%d')+
+            pd.to_timedelta(df['HORA']/100., unit='h'))
+        df.rename(columns={'El Bosque ':'El Bosque'}, inplace=True)
+        del df['NO2 (ppb)'], df['AÑO'], df['FECHA (YY/MM/DD)'], df['HORA']
     # Convert observations to numeric
     df = df.apply(pd.to_numeric, args=('coerce',))
-    # Based on plotting diurnal curves of O3 and NO2 for some random days, 
-    # it appears that the time is in local time. Set time as index.
     df['Date'] = pd.to_datetime(df['Date'])
     # Calculate daily average 
     df = df.resample('d', on='Date').mean().dropna(how='all')
@@ -299,7 +245,9 @@ def read_santiago(pollutant, startdate, enddate):
         df.loc[(df.Site == site), 'Latitude'] = site_lat
         df.loc[(df.Site == site), 'Longitude'] = site_lng
     df.set_index('Date', drop=True, inplace=True)
-    df = df.loc[startdate:enddate]    
+    df = df.loc[startdate:enddate]
+    # Add city column
+    df['City'] = 'Santiago C40'    
     return df
 
 def read_berlin(pollutant, startdate, enddate):
@@ -401,6 +349,8 @@ def read_berlin(pollutant, startdate, enddate):
         df['Concentration'] = df['Concentration']/1.88
     if pollutant=='O3':
         df['Concentration'] = df['Concentration']/2.
+    # Add city column
+    df['City'] = 'Berlin C40'        
     return df
 
 def read_mexicocity(pollutant, startdate, enddate):
@@ -483,12 +433,12 @@ def read_mexicocity(pollutant, startdate, enddate):
         pollutant = 'PM25'
     df = pd.DataFrame([])
     for year in [2019, 2020]:
-        dfty = pd.read_csv(DIR_AQ+'mexicocity/'+'%s_ene_jun_%d.csv'%(
+        dfty = pd.read_csv(DIR_AQ+'mexicocity/'+'%s_%d.csv'%(
             pollutant, year), delimiter=',', header=0, engine='python')
         # Replace missing data (-99) with NaNs
         dfty = dfty.replace([-99], np.nan, regex=True)
         dfty.rename(columns={'date':'Date'}, inplace=True)
-        dfty['Date'] = pd.to_datetime(dfty['Date'], format='%d/%m/%Y %H:%M')
+        dfty['Date'] = pd.to_datetime(dfty['Date'], format='%Y-%m-%d %H:%M')
         # Calculate daily average 
         dfty = dfty.resample('d', on='Date').mean().dropna(how='all')
         df = df.append(dfty, ignore_index=False)            
@@ -505,7 +455,9 @@ def read_mexicocity(pollutant, startdate, enddate):
         df.loc[(df.Site == site), 'Longitude'] = site_lng
         df.loc[(df.Site == site), 'Site'] = site_name
     df.set_index('Date', drop=True, inplace=True)
-    df = df.loc[startdate:enddate]    
+    df = df.loc[startdate:enddate]
+    # Add city column
+    df['City'] = 'Mexico City C40'    
     return df 
 
 def read_losangeles(pollutant, startdate, enddate):
@@ -599,6 +551,8 @@ def read_losangeles(pollutant, startdate, enddate):
     if (pollutant=='NO2') or (pollutant=='OZONE'):
         df['Concentration'] = df['Concentration']*1000.
     df = df.loc[startdate:enddate]
+    # Add city column
+    df['City'] = 'Los Angeles C40'    
     return df
     
 def read_milan(pollutant, startdate, enddate):
@@ -709,6 +663,8 @@ def read_milan(pollutant, startdate, enddate):
         df['Concentration'] = df['Concentration']/1.88
     if pollutant=='O3':
         df['Concentration'] = df['Concentration']/2.
+    # Add city column
+    df['City'] = 'Milan C40'        
     return df
 
 def read_london(pollutant, startdate, enddate):
@@ -989,10 +945,18 @@ def read_london(pollutant, startdate, enddate):
     # o3.to_csv(DIR_AQ+'london/O3_parsed_dailyavg.csv', encoding='utf-8')
     # no2 = parse('NO2')
     # no2.to_csv(DIR_AQ+'london/NO2_parsed_dailyavg.csv', encoding='utf-8')
-    # Open parsed file for pollutant of interest 
+    # Open parsed file for pollutant of interest
+    if pollutant == 'PM2.5':
+        pollutant = 'PM25'
     df = pd.read_csv(DIR_AQ+'london/'+'%s_parsed_dailyavg.csv'%(pollutant),
         delimiter=',', header=0, engine='python')
     df.set_index('Date', drop=True, inplace=True)
     df.index = pd.to_datetime(df.index)
     df = df.loc[startdate:enddate]
+    if pollutant=='NO2':
+        df['Concentration'] = df['Concentration']/1.88
+    if pollutant=='O3':
+        df['Concentration'] = df['Concentration']/2. 
+    # Add city column
+    df['City'] = 'London C40'        
     return df    
