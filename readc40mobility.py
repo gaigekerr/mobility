@@ -540,21 +540,13 @@ def read_applemobility(start, end):
     import pandas as pd
     df = pd.read_csv(DIR_MOBILITY+'applemobilitytrends-2020-12-12.csv', 
         delimiter=',', engine='python')
-    # station_city = ['Berlin', 'Madrid', 'Athens', 'Rome', 'Bucharest', 
-    #     'Paris', 'Vienna', 'Hamburg', 'Warsaw', 'Budapest', 'Barcelona', 
-    #     'Munich', 'Milan', 'Prague',  'Sofia', 'Cologne', 'Stockholm', 
-    #     'Naples', 'Turin', 'Amsterdam', 'Marseille', 'Zagreb', 'Copenhagen', 
-    #     'Valencia', 'Krakow', 'Frankfurt', 'Seville', 'Lodz', 'Saragossa', 
-    #     'Palermo', 'Rotterdam', 'Helsinki', 'Wroclaw', 'Stuttgart', 'Riga', 
-    #     'Dusseldorf', 'Vilnius', 'London', 'Auckland', 'Mexico City', 
-    #     'Santiago', 'Los Angeles']
-    
     station_city = ['Amsterdam', 'Athens', 'Auckland', 'Bangkok', 'Barcelona',
        'Belgrade', 'Berlin', 'Bratislava', 'Brussels', 'Bucharest',
        'Budapest', 'Cologne', 'Copenhagen', 'Dublin', 'Dusseldorf',
        'Frankfurt', 'Hamburg', 'Helsinki', 'Krakow', 'Lodz', 'London', 
        'Los Angeles', 'Luxembourg', 'Madrid', 'Marseille', 'Medellin',
-       'Mexico City', 'Milan', 'Montreal', 'Mumbai', 'Munich', 'Naples',
+       'Mexico City', 'Milan', 'Montreal', 'Munich', 'Naples',
+       # Removed 'Mumbai' on 22 April
        'Oslo', 'Palermo', 'Paris', 'Prague', 'Riga', 'Rome', 'Rotterdam',
        'Santiago', 'Saragossa', 'Seville', 'Sofia', 'Stockholm',
        'Stuttgart', 'Sydney', 'Taipei City', 'Turin', 'Valencia',
@@ -658,6 +650,15 @@ def read_applemobility(start, end):
         city['city'] = cityname
         mobility.append(city)
     mobility = pd.concat(mobility)
+    # Change city names to be consistent with conventions in code    
+    mobility.loc[mobility.city=='Los Angeles','city'] = 'Los Angeles C40'
+    mobility.loc[mobility.city=='Mexico City','city'] = 'Mexico City C40'
+    mobility.loc[mobility.city=='Santiago','city'] = 'Santiago C40'
+    mobility.loc[mobility.city=='Auckland','city'] = 'Auckland C40'
+    mobility.loc[mobility.city=='London','city'] = 'London C40'
+    mobility.loc[mobility.city=='Berlin','city'] = 'Berlin C40'
+    mobility.loc[mobility.city=='Milan','city'] = 'Milan C40'
+    mobility.loc[mobility.city=='Tapei City','city'] = 'Tapei'
     return mobility
 
 def read_losangeles(): 
