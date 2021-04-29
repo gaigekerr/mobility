@@ -8,10 +8,11 @@ CSV files, where each column corresponds to a variable of interest.
 DIR = '/GWSPH/groups/anenberggrp/ghkerr/'
 DIR_GEOSCF = DIR+'data/GEOSCF/'
 DIR_EEA = DIR+'data/EEA/'
+DIR_AQS = DIR+'data/AQS/'
 DIR_OPENAQ = DIR+'data/openaq/'
 DIR_OUT = DIR_GEOSCF
 
-collection = 'aqc'
+collection = 'met'
 
 def pd_read_pattern(pattern):
     """Open > 1 .csv files with a wildcard character in Pandas (code from 
@@ -32,6 +33,8 @@ import pandas as pd
 coords_eea = pd_read_pattern(DIR_EEA+'*_coords.csv')
 # # # # FOR OPENAQ obs
 coords_openaq = pd_read_pattern(DIR_OPENAQ+'*_coords.csv')
+# # # # FOR AQS SITES IN THE UNITED STATES
+coords_aqs = pd_read_pattern(DIR_AQS+'*_coords.csv')
 
 # # # # FOR C40 CITIES 
 # This part of the code is a little kludgey and is run locally before 
@@ -305,18 +308,20 @@ if collection=='aqc':
     pattern = 'aqc_tavg_1hr/GEOS-CF.v01.rpl.aqc_tavg_1hr_g1440x721_v1.*.nc'
     geoscf = xr.open_mfdataset(DIR_GEOSCF+pattern)
 if collection=='met':
-    pattern = 'met_tavg_1hr/GEOS-CF.v01.rpl.met_tavg_1hr_g1440x721_x1.*.nc4'
+    #pattern = 'met_tavg_1hr/GEOS-CF.v01.rpl.met_tavg_1hr_g1440x721_x1.*.nc'
+    pattern = 'met_tavg_1hr/GEOS-CF.v01.rpl.met_tavg_1hr_g1440x721_x1.2018-2020.nc'
     geoscf = xr.open_mfdataset(DIR_GEOSCF+pattern)    
 print('GEOS-CF opened with dimensions of...', geoscf.dims)
 # Combine C40/EEA stations in a single DataFrame
 aqlocs = pd.concat([coords_eea[['Longitude','Latitude','City']], 
     coords_openaq[['Longitude','Latitude','City']], coords_c40])
+aqlocs = coords_aqs
 
 # This is the main loop to loop over the air monitoring statinos and pick 
 # off the closet GEOS-CF grid cell
 df = []
 for index, row in aqlocs.iterrows():
-    print('Handling AQC for %s...'%(row['City']))
+    print('Handling AQC or MET for %s...'%(row['City']))
     lat_in = row['Latitude']
     lng_in = row['Longitude']
     city = row['City']
@@ -409,6 +414,6 @@ for index, row in aqlocs.iterrows():
         df.append(df_in)
 df = pd.concat(df)
 if collection=='aqc':
-    df.to_csv(DIR_OUT+'aqc_tavg_1d_cities_v2openaq.csv', index=False)
+    df.to_csv(DIR_OUT+'aqc_tavg_1d_cities_aqs.csv', index=False)
 if collection=='met':
-    df.to_csv(DIR_OUT+'met_tavg_1d_cities_v2openaq.csv', index=False)
+    df.to_csv(DIR_OUT+'met_tavg_1d_cities_aqs.csv', index=False)
