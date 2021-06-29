@@ -5,8 +5,8 @@ Created on Mon Jan 25 15:54:57 2021
 
 @author: ghkerr
 """
-
-DIR_MODEL = '/Users/ghkerr/Downloads/'
+DIR = '/Users/ghkerr/GW/'
+DIR_MODEL = DIR+'data/GEOSCF/'
 
 import pandas as pd
 from scipy import stats 
@@ -15,6 +15,7 @@ import xgboost as xgb
 import argparse
 import numpy as np
 import time
+import numpy.ma as ma
 
 def prepare_model_obs(obs, model, start, end):
     """Harmonize GEOS-CF model output (and driving emissions and meteorological 
@@ -42,40 +43,23 @@ def prepare_model_obs(obs, model, start, end):
     obs_conc : pandas.core.series.Series
         Observed NO2 concentrations for the city/period of interest.
     """
-    import pandas as pd
     model = model.copy(deep=True)
-    # # # # For observations
-    # Compute city-wide average 
-    obs = obs.groupby(['Date']).mean()
-    obs.reset_index(inplace=True)
-    obs.rename({'Date': 'ISO8601'}, axis=1, inplace=True)
+    # # # # # For observations
+    # # Compute city-wide average 
+    # obs = obs.groupby(['Date']).mean()
+    # obs.reset_index(inplace=True)
+    # obs.rename({'Date': 'ISO8601'}, axis=1, inplace=True)
     # Restrict to specified time window
-    obs = obs.loc[(obs['ISO8601']>=start) & (obs['ISO8601']<=end)]
+    obs = obs.loc[(obs['Date']>=start) & (obs['Date']<=end)]
     # # # # For GEOS-CF
     # From Christoph's _read_model function
-    SKIPVARS = ['ISO8601','weekday','trendday','location','lat','lon',
-        'CLDTT','Q10M','T10M','TS','U10M','V10M','ZPBL',
-        'year','month','day','hour']
+    SKIPVARS = ['Date', 'latitude', 'longitude', 'PM25', 'city', 'CLDTT', 
+        'Q', 'Q10M', 'Q2M', 'RH', 'SLP', 'T', 'T10M', 'T2M', 'TS', 'U', 
+        'U10M', 'U2M', 'V', 'V10M', 'V2M', 'ZPBL', 'Volume']
     # Data columns to be excluded from the machine learning
-    # DROPVARS = ['location','original_station_name','lat','lon','unit','year']    
-    DROPVARS = ['Latitude', 'Longitude', 'NO',
-       'NOy', 'O3', 'CO', 'ACET', 'ALK4', 'ALD2', 'HCHO', 'C2H6', 'C3H8',
-       'BCPI', 'BCPO', 'OCPI', 'OCPO', 'EOH', 'DST1', 'DST2', 'DST3', 'DST4',
-       'H2O2', 'HNO3', 'HNO4', 'ISOP', 'MACR', 'MEK', 'MVK', 'N2O5', 'NH3',
-       'NH4', 'NIT', 'PAN', 'PRPE', 'RCHO', 'SALA', 'SALC', 'SO2', 'SOAP',
-       'SOAS', 'TOLU', 'XYLE', 'PM25_RH35_GCC', 'PM25ni_RH35_GCC',
-       'PM25su_RH35_GCC', 'PM25ss_RH35_GCC', 'PM25du_RH35_GCC',
-       'PM25bc_RH35_GCC', 'PM25oc_RH35_GCC', 'PM25soa_RH35_GCC',
-       'PM25_RH35_GOCART', 'EMIS_NO', 'EMIS_CO', 'EMIS_ACET', 'EMIS_ALD2',
-       'EMIS_ALK4', 'EMIS_BENZ', 'EMIS_C2H6', 'EMIS_C3H8', 'EMIS_HCHO',
-       'EMIS_EOH', 'EMIS_MEK', 'EMIS_NH3', 'EMIS_PRPE', 'EMIS_TOLU',
-       'EMIS_XYLE', 'EMIS_ISOP', 'EMIS_BCPI', 'EMIS_BCPO', 'EMIS_OCPI',
-       'EMIS_OCPO', 'EMIS_DST1', 'EMIS_DST2', 'EMIS_DST3', 'EMIS_DST4',
-       'EMIS_SALA', 'EMIS_SALC', 'EMIS_SO2', 'EMIS_SOAP', 'EMIS_SOAS',
-       'EMIS_I2', 'EMIS_CHBr3', 'month', 'day', 'hour', 'weekday', 'trendday']    
-    # Scale factors used to scale the model emissions and concentrations,
-    # respectively.
-    EMISSCAL = 1.0e6*3600.0
+    DROPVARS = ['latitude', 'longitude', 'Q10M', 'Q2M', 'T10M', 'T2M',
+        'TS', 'U10M', 'U2M', 'V10M', 'V2M']  
+    # Scale model concentrations
     CONCSCAL = 1.0e9
     # Scale concentrations to ppbv (from mol/mol) and emissions to mg/m2/h 
     # (from kg/m2/s)
@@ -86,15 +70,12 @@ def prepare_model_obs(obs, model, start, end):
             scal = 1.0e6
         elif v == 'PS': 
             scal = 0.01 
-        elif 'EMIS_' in v:
-            scal = EMISSCAL 
         else:
             scal = CONCSCAL
-        model[v] = model[v].values * scal 
-    model['ISO8601'] = pd.to_datetime(model['ISO8601'])
-    # # # # Merge model and observations
-    merged = obs.merge(model, how='inner', on='ISO8601')
-    # drop values not needed
+        model[v] = model[v].values*scal
+    # Merge model and observations
+    merged = obs.merge(model, how='inner', on='Date')
+    # Drop values not needed
     _ = [merged.pop(var) for var in DROPVARS if var in merged]
     # Machine learning algorithm is trained on (observation - 
     # model) difference
@@ -105,8 +86,15 @@ def prepare_model_obs(obs, model, start, end):
 def train(args,Xtrain,Ytrain):
     '''train XGBoost model'''
     Xt = Xtrain.copy()
-    Xt.pop('ISO8601')
-    train = xgb.DMatrix(Xt,np.array(Ytrain))
+    Xt.pop('Date')
+    # Because of the occassional NaN in the observations, xgb.DMatrix will 
+    # throw the following error: 
+    # Degrees of freedom <= 0 for slice.
+    # Mean of empty slice
+    # To ameliorate this, replace NaNs with arbitrary values (from 
+    # https://github.com/dmlc/xgboost/issues/822)
+    # Ytrain = np.nan_to_num(Ytrain, nan=-999.)
+    train = xgb.DMatrix(Xt, Ytrain)#, missing=-999.)
     params = {'booster':'gbtree'}
     bst = xgb.train(params,train)
     return bst
@@ -115,7 +103,7 @@ def predict(args,bst,Xpredict):
     """make prediction using XGBoost model and return predicted bias and 
     bias-corrected concentration"""
     Xp = Xpredict.copy()
-    dates = Xp.pop('ISO8601')
+    dates = Xp.pop('Date')
     predict = xgb.DMatrix(Xp)
     predicted_bias = bst.predict(predict)
     predicted_conc = Xpredict['NO2'].values + predicted_bias    
@@ -129,17 +117,6 @@ def _get_shap_values(args,bst,X):
     shap_array = np.abs(explainer.shap_values(X))
     shap_values = pd.DataFrame(data = shap_array,columns=list(bst.feature_names))
     return shap_values 
-
-def valid(args,bst,Xvalid,Yvalid,instance):
-    '''make prediction using XGboost model'''
-    bias,conc,dates,shap_values = predict(args,bst,Xvalid)
-    fig, axs = plt.subplots(1,3,figsize=(15,5))
-    axs[0] = _plot_scatter(axs[0],bias,Yvalid,-60.,60.,'Predicted bias [ppbv]','True bias [ppbv]','Bias')
-    axs[1] = _plot_scatter(axs[1],Xvalid['NO2'],Xvalid['NO2'].values+Yvalid,0.,60.,'Model concentration [ppbv]','Observed concentration [ppbv]','Original')
-    axs[2] = _plot_scatter(axs[2],conc,Xvalid['NO2'].values+Yvalid,0.,60.,'Model concentration [ppbv]','Observed concentration [ppbv]','Adjusted (XGBoost)')
-    plt.tight_layout(rect=[0,0.03,1,0.95])
-    plt.show()
-    return
 
 def run_xgboost(args, merged_train, bias_train, merged_full, obs_conc_full): 
     """Conduct eXtreme Gradient Boosting/XGBoost to predict the bias between 
@@ -174,9 +151,58 @@ def run_xgboost(args, merged_train, bias_train, merged_full, obs_conc_full):
         alongside the observed concentrations (and the bias).
     shaps : pandas.core.frame.DataFrame
         Shapley values for each training
+    rorig : list
+        Correlation coefficient calculated between model and observations, [1]
+    fac2orig : list
+        Factor-of-2 fraction calculated between model and observations, [1]    
+    mfborig : list
+        Mean fractional bias calculated between model and observations, [1]
+    rtrain : list
+        Correlation coefficient calculated between training bias-corrected
+        model and observations, [N]   
+    fac2train : list
+        Factor-of-2 fraction calculated between training bias-corrected
+        model and observations, [N]
+    mfbtrain : list
+        Mean fractional bias calculated between training bias-corrected
+        model and observations, [N]
+    rvalid : list
+        Correlation coefficient calculated between valdiation bias-corrected
+        model and observations, [N]    
+    fac2valid : list
+        Factor-of-2 fraction calculated between valdiation bias-corrected
+        model and observations, [N]    
+    mfbvalid: list
+        Mean fractional bias calculated between valdiation bias-corrected
+        model and observations, [N]        
     """
     shap_list = []
+    features = []
     anomalies = []
+    # The following lists will be filled with evaluations metrics comparing the 
+    # raw (non-bias-corrected) model with observations 
+    rorig, fac2orig, mfborig = [], [], []
+    pm = ma.masked_invalid(merged_train['NO2'].values)
+    om = ma.masked_invalid(bias_train.values)    
+    msk = (~pm.mask & ~om.mask)
+    p = merged_train['NO2'].values[msk]
+    o = (merged_train['NO2'].values[msk]+bias_train.values[msk])
+    # Correlation coefficient 
+    rorig.append(np.corrcoef(p,o)[0,1])
+    # Factor-of-2 fraction (atmosphere.copernicus.eu/sites/default/files/
+    # 2018-11/2_3rd_ECCC_NOAA_ECMWF_v06.pdf)
+    fac2 = (p/o)
+    fac2 = np.where((fac2>0.5) & (fac2<2.))[0]
+    fac2orig.append(len(fac2)/len(p))
+    # Mean fractional bias (see"Fractional bias" in Table 1 on
+    # https://rmets.onlinelibrary.wiley.com/doi/10.1002/asl.125)
+    mfborig.append(2*(np.nansum(p-o)/np.nansum(p+o)))
+    del p, o
+    # The following lists will be filled with values of machine learning 
+    # evaluation metrics during each iteration of k-means cross validation 
+    # (for both training and testing datasets)
+    rtrain, fac2train, mfbtrain = [], [], []
+    rvalid, fac2valid, mfbvalid = [], [], []    
     N = 6
     for n in range(N):
         # Split into training and validation by splitting into N chunks
@@ -190,16 +216,54 @@ def run_xgboost(args, merged_train, bias_train, merged_full, obs_conc_full):
         Ytrain = np.concatenate(Ysplit)
         # Train model
         bst = train(args,Xtrain,Ytrain)
-        # Validate 
+        # Evaluation metrics for training data; note that "conc_train" and 
+        # "conc_valid" are the observed concentrations for the training and
+        # validation datasets, respectively. Xtrain['NO2'] is the model NO2
+        # and Ytrain is the machine-learned bias, so Xtrain['NO2']+Ytrain
+        # would represent the bias corrected model NO2
+        biast, conct, datest, svt = predict(args, bst, Xtrain)
+        p = Xtrain['NO2'].values+Ytrain
+        o = conct
+        pm = ma.masked_invalid(p)
+        om = ma.masked_invalid(o)
+        msk = (~pm.mask & ~om.mask)        
+        rtrain.append(np.corrcoef(p[msk],o[msk])[0,1])
+        fac2 = (p[msk]/o[msk])
+        fac2 = np.where((fac2>0.5) & (fac2<2.))[0]
+        fac2train.append(len(fac2)/len(p[msk]))
+        mfbtrain.append(2*(np.nansum(p[msk]-o[msk])/np.nansum(p[msk]+o[msk])))
+        del p, o
+        # Evaluation metrics for testing (validation) data
+        biasv, concv, datesv, svv = predict(args, bst, Xvalid)
+        p = Xvalid['NO2'].values+Yvalid
+        o = concv
+        pm = ma.masked_invalid(p)
+        om = ma.masked_invalid(o)
+        msk = (~pm.mask & ~om.mask)
+        # Depending on how much missing data a city has, there might be a case
+        # where a particular held-out fold/set has no observations (an example
+        # of this is Zurich validation dataset for n=1...in this case, all 
+        # observations for the validation set are NaN.)
+        if len(o[msk])!=0:
+            rvalid.append(np.corrcoef(p[msk],o[msk])[0,1])
+            fac2 = (p[msk]/o[msk])
+            fac2 = np.where((fac2>0.5) & (fac2<2.))[0]
+            fac2valid.append(len(fac2)/len(p[msk]))
+            mfbvalid.append(2*(np.nansum(p[msk]-o[msk])/np.nansum(
+                p[msk]+o[msk]))) 
+        del p, o
+        ## Validate 
         #valid(args,bst,Xvalid,Yvalid,n) 
         # Apply bias correction to model output to obtain 'business-as-usual' 
         # estimate and compare this value against observations
-        bias_pred, conc_pred, dates, shap_values = predict(args, bst, merged_full)
+        bias_pred, conc_pred, dates, shap_values = predict(args, bst, 
+            merged_full)
         anomaly = obs_conc_full - conc_pred    
-        pred = pd.DataFrame({'ISO8601':dates, 'predicted':conc_pred,
+        pred = pd.DataFrame({'Date':dates, 'predicted':conc_pred,
             'observed':obs_conc_full,'anomaly':anomaly})
         anomalies.append(pred)
         shap_list.append(shap_values)
+        features.append(merged_full)
     # anomalies is a list with individual DataFrames comprised of dates, the
     # predicted concentrations (BCM = BAU modeled NO2 + predicted bias), the 
     # observed NO2 concentrations (this is somewhat of a repeat from 
@@ -213,229 +277,109 @@ def run_xgboost(args, merged_train, bias_train, merged_full, obs_conc_full):
     # what a model predicts with and without the feature. All SHAP values 
     # have the same unit (the unit of the prediction space).
     shaps = pd.concat(shap_list)
-    return no2diff, shaps
+    features = pd.concat(features)
+    return (no2diff, shaps, features, rorig, fac2orig, mfborig, rtrain, fac2train, 
+        mfbtrain, rvalid, fac2valid, mfbvalid)
 
-def _plot_scatter(ax,x,y,minval,maxval,xlab,ylab,title):
-    '''make scatter plot of XGBoost prediction vs. true values'''
-    r,p = stats.pearsonr(x,y)
-    nrmse = np.sqrt(mean_squared_error(x,y))/np.std(x)
-    mb = np.sum(y-x)/np.sum(x)
-    slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
-    ax.hexbin(x,y,cmap=plt.cm.gist_earth_r,bins='log')
-    ax.set_xlim(minval,maxval)
-    ax.set_ylim(minval,maxval)
-    ax.plot((0.95*minval,1.05*maxval),(0.95*minval,1.05*maxval),color='grey',linestyle='dashed')
-    # regression line
-    ax.plot((0.95*minval,1.05*maxval),(intercept+(0.95*minval*slope),intercept+(1.05*maxval*slope)),color='blue',linestyle='dashed')
-    ax.set_xlabel(xlab)
-    if ylab != '-':
-        ax.set_ylabel(ylab)
-    istr = 'N = {:,}'.format(y.shape[0])
-    _ = ax.text(0.05,0.95,istr,transform=ax.transAxes)
-    istr = '{0:.2f}'.format(r**2)
-    istr = 'R$^{2}$ = '+istr
-    _ = ax.text(0.05,0.90,istr,transform=ax.transAxes)
-    istr = 'NRMSE [%] = {0:.2f}'.format(nrmse*100)
-    _ = ax.text(0.05,0.85,istr,transform=ax.transAxes)
-    _ = ax.set_title(title)
-    return ax
+# def _plot_scatter(ax,x,y,minval,maxval,xlab,ylab,title):
+#     '''make scatter plot of XGBoost prediction vs. true values'''
+#     r,p = stats.pearsonr(x,y)
+#     nrmse = np.sqrt(mean_squared_error(x,y))/np.std(x)
+#     mb = np.sum(y-x)/np.sum(x)
+#     slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
+#     ax.hexbin(x,y,cmap=plt.cm.gist_earth_r,bins='log')
+#     ax.set_xlim(minval,maxval)
+#     ax.set_ylim(minval,maxval)
+#     ax.plot((0.95*minval,1.05*maxval),(0.95*minval,1.05*maxval),color='grey',linestyle='dashed')
+#     # regression line
+#     ax.plot((0.95*minval,1.05*maxval),(intercept+(0.95*minval*slope),intercept+(1.05*maxval*slope)),color='blue',linestyle='dashed')
+#     ax.set_xlabel(xlab)
+#     if ylab != '-':
+#         ax.set_ylabel(ylab)
+#     istr = 'N = {:,}'.format(y.shape[0])
+#     _ = ax.text(0.05,0.95,istr,transform=ax.transAxes)
+#     istr = '{0:.2f}'.format(r**2)
+#     istr = 'R$^{2}$ = '+istr
+#     _ = ax.text(0.05,0.90,istr,transform=ax.transAxes)
+#     istr = 'NRMSE [%] = {0:.2f}'.format(nrmse*100)
+#     _ = ax.text(0.05,0.85,istr,transform=ax.transAxes)
+#     _ = ax.set_title(title)
+#     return ax
 
-def plot_timeseries(no2diff, merged_full):
-    """Plot timeseries of modeled NO2 (from GEOS-CF), observed NO2, and the 
-    bias-corrected model. 
+# def plot_timeseries(no2diff, merged_full):
+#     """Plot timeseries of modeled NO2 (from GEOS-CF), observed NO2, and the 
+#     bias-corrected model. 
 
-    Parameters
-    ----------
-    no2diff : pandas.core.frame.DataFrame
-        Predicted concentrations, the observed concentrations, and the bias for
-        each XGBoost training.
-    merged_full : pandas.core.frame.DataFrame
-        Inputs for full time period
+#     Parameters
+#     ----------
+#     no2diff : pandas.core.frame.DataFrame
+#         Predicted concentrations, the observed concentrations, and the bias for
+#         each XGBoost training.
+#     merged_full : pandas.core.frame.DataFrame
+#         Inputs for full time period
 
-    Returns
-    -------
-    None
-    """
-    import matplotlib.pyplot as plt
-    import matplotlib.dates as mdates
-    # Group data by date and average over all N predictions
-    dat = no2diff.groupby(['ISO8601']).mean().reset_index()
-    dat = dat.set_index('ISO8601').resample('1D').mean().rolling(window=7,
-        min_periods=1).mean()
-    # Plotting
-    fig = plt.figure(figsize=(7,2))
-    ax = plt.subplot2grid((1,1),(0,0))
-    ax.plot(merged_full.set_index('ISO8601').resample('1D').mean().rolling(
-        window=7,min_periods=1).mean()['NO2'], ls='--', 
-        color='darkgrey', label='GEOS-CF')
-    ax.plot(dat['observed'], '-k', label='Observed')
-    ax.plot(dat['predicted'], '--k', label='BCM')
-    # Fill red for positive difference between , blue for negative difference
-    y1positive=(dat['observed']-dat['predicted'])>0
-    y1negative=(dat['observed']-dat['predicted'])<=0
-    ax.fill_between(dat.index, dat['predicted'],
-        dat['observed'], where=y1positive, color='red', alpha=0.5)
-    ax.fill_between(dat.index, dat['predicted'], 
-        dat['observed'], where=y1negative, color='blue', alpha=0.5,
-        interpolate=True)
-    # Legend
-    ax.legend(loc=1, ncol=3, bbox_to_anchor=(1.,1.4), frameon=False)
-    ax.set_ylim([0, 50])
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%Y'))
-    ax.set_xlim([dat.index.values.min(), dat.index.values.max()])
-    ax.set_ylabel('NO$_{2}$ [ppbv]')
-    ax.set_title('London', x=0.05, fontsize=12)
-    fig.tight_layout()
-    plt.savefig('/Users/ghkerr/Desktop/london_bcm.png', dpi=400)
-    plt.show()
-    return 
+#     Returns
+#     -------
+#     None
+#     """
+#     import matplotlib.pyplot as plt
+#     import matplotlib.dates as mdates
+#     # Group data by date and average over all N predictions
+#     dat = no2diff.groupby(['Date']).mean().reset_index()
+#     dat = dat.set_index('Date').resample('1D').mean().rolling(window=7,
+#         min_periods=1).mean()
+#     # Plotting
+#     fig = plt.figure(figsize=(7,2))
+#     ax = plt.subplot2grid((1,1),(0,0))
+#     ax.plot(merged_full.set_index('Date').resample('1D').mean().rolling(
+#         window=7,min_periods=1).mean()['NO2'], ls='--', 
+#         color='darkgrey', label='GEOS-CF')
+#     ax.plot(dat['observed'], '-k', label='Observed')
+#     ax.plot(dat['predicted'], '--k', label='BCM')
+#     # Fill red for positive difference between , blue for negative difference
+#     y1positive=(dat['observed']-dat['predicted'])>0
+#     y1negative=(dat['observed']-dat['predicted'])<=0
+#     ax.fill_between(dat.index, dat['predicted'],
+#         dat['observed'], where=y1positive, color='red', alpha=0.5)
+#     ax.fill_between(dat.index, dat['predicted'], 
+#         dat['observed'], where=y1negative, color='blue', alpha=0.5,
+#         interpolate=True)
+#     # Legend
+#     ax.legend(loc=1, ncol=3, bbox_to_anchor=(1.,1.4), frameon=False)
+#     ax.set_ylim([0, 50])
+#     ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%Y'))
+#     ax.set_xlim([dat.index.values.min(), dat.index.values.max()])
+#     ax.set_ylabel('NO$_{2}$ [ppbv]')
+#     ax.set_title('London', x=0.05, fontsize=12)
+#     fig.tight_layout()
+#     plt.savefig('/Users/ghkerr/Desktop/london_bcm.png', dpi=400)
+#     plt.show()
+#     return 
 
-# import datetime as dt
-# import numpy as np
-# import pandas as pd
-# import matplotlib.pyplot as plt
-# import sys
-# sys.path.append('/Users/ghkerr/GW/mobility/')
-# import readc40aq
-import readc40mobility
+# def valid(args,bst,Xvalid,Yvalid,instance):
+#     '''make prediction using XGboost model'''
+#     bias,conc,dates,shap_values = predict(args,bst,Xvalid)
+#     fig, axs = plt.subplots(1,3,figsize=(15,5))
+#     axs[0] = _plot_scatter(axs[0],bias,Yvalid,-60.,60.,
+#         'Predicted bias [ppbv]','True bias [ppbv]','Bias')
+#     axs[1] = _plot_scatter(axs[1],Xvalid['NO2'],Xvalid['NO2'
+#         ].values+Yvalid,0.,60.,'Model concentration [ppbv]','Observed concentration [ppbv]','Original')
+#     axs[2] = _plot_scatter(axs[2],conc,Xvalid['NO2'].values+Yvalid,0.,60.,'Model concentration [ppbv]','Observed concentration [ppbv]','Adjusted (XGBoost)')
+#     plt.tight_layout(rect=[0,0.03,1,0.95])
+#     plt.show()
+#     return
 
-# # Load model
-# gcf = pd.read_csv(DIR_MODEL+'model.csv', delimiter=',', header=0, 
-#     engine='python', parse_dates=['ISO8601'],date_parser=lambda x: 
-#     dt.datetime.strptime(x, '%Y-%m-%dT%H:%M:%SZ'))
-
-# # # # For Milan 
-# Model grid cells corresponding to Milan 
-lng_mil = [9., 9.25, 9.5]
-lat_mil = [45.25, 45.5, 45.75]
-gcf_mil = gcf.loc[(gcf['lon'].isin(lng_mil)) & (gcf['lat'].isin(lat_mil))]
-# Compute daily average
-gcf_mil = gcf_mil.groupby([gcf_mil['ISO8601'].dt.date]).mean()
-gcf_mil.reset_index(inplace=True)
-# Load NO2 observations
-obs = readc40aq.read_milan('NO2', '2019-01-01', '2020-12-31')
-# Load Milan traffic counts and calculate daily average
-traffic_mil = readc40mobility.read_milan('2019-01-01', '2020-12-31')
-traffic_mil = traffic_mil.drop(['Site'], axis=1).reset_index()
-traffic_mil = traffic_mil.rename(columns={'Date':'ISO8601'})
-traffic_mil['ISO8601'] = traffic_mil['ISO8601'].dt.date.astype(object)
-gcf_mil = traffic_mil.merge(gcf_mil, how='inner', on='ISO8601')
-
-merged_train, bias_train, obs_conc_train = \
-    prepare_model_obs(obs, gcf_mil, '2019-01-01', '2019-12-31')
-merged_full, bias_full, obs_conc_full = \
-    prepare_model_obs(obs, gcf_mil, '2019-01-01', '2020-06-30')
-no2diff, shaps = run_xgboost(args, merged_train, bias_train, merged_full, obs_conc_full)
-plot_timeseries(no2diff, merged_full)
-
-# # # # # For Los Angeles 
-# lat_los = [34., 34.25, 33.75]
-# lng_los = [-118., -118.25, -118.5]
-# gcf_los = gcf.loc[(gcf['lon'].isin(lng_los)) & (gcf['lat'].isin(lat_los))]
-# gcf_los = gcf_los.groupby([gcf_los['ISO8601'].dt.date]).mean()
-# gcf_los.reset_index(inplace=True)
-# obs = readc40aq.read_losangeles('NO2', '2019-01-01', '2020-12-31')
-# merged_train, bias_train, obs_conc_train = \
-#     prepare_model_obs(obs, gcf_los, '2019-01-01', '2019-12-31')
-# merged_full, bias_full, obs_conc_full = \
-#     prepare_model_obs(obs, gcf_los, '2019-01-01', '2020-06-30')
-# no2diff, shaps = run_xgboost(args, merged_train, bias_train, merged_full, obs_conc_full)
-# plot_timeseries(no2diff, merged_full)
-
-# # # # # For London
-# lat_lon = [51.5]
-# lng_lon = [-0.25, 0., 0.25]
-# gcf_lon = gcf.loc[(gcf['lon'].isin(lng_lon)) & (gcf['lat'].isin(lat_lon))]
-# gcf_lon = gcf_lon.groupby([gcf_lon['ISO8601'].dt.date]).mean()
-# gcf_lon.reset_index(inplace=True)
-# obs = readc40aq.read_london('NO2', '2019-01-01', '2020-12-31')
-# merged_train, bias_train, obs_conc_train = \
-#     prepare_model_obs(obs, gcf_lon, '2019-01-01', '2019-12-31')
-# merged_full, bias_full, obs_conc_full = \
-#     prepare_model_obs(obs, gcf_lon, '2019-01-01', '2020-06-30')
-# no2diff, shaps = run_xgboost(args, merged_train, bias_train, merged_full, obs_conc_full)
-# plot_timeseries(no2diff, merged_full)
-
-
-
-
-
-
-NFEATURES = 15
-df = shaps.melt(var_name='Feature',value_name='Shap')
-# median value for each feature, used to rank the SHAP values in the boxplot
-medians = df.groupby('Feature').median().sort_values(by='Shap',ascending=False).reset_index()
-# reduce data to first NFEATURES number of features
-features = list(medians['Feature'].values[:NFEATURES])
-medians = medians.loc[medians['Feature'].isin(features)]
-
-fig = plt.figure()
-ax= plt.subplot2grid((1,1),(0,0))
-ax.bar(np.arange(0,len(medians),1), medians['Shap'])
-ax.set_xticks(np.arange(0, len(medians['Feature'].values), 1))
-ax.set_xticklabels(medians['Feature'].values, rotation=90)
-
-
-
-# WASHINGTON DC
-# [ -77.  ,   38.75],
-# [ -77.  ,   39.  ],
-# [ -76.75,   39.  ],
-# [ -76.75,   39.25],
-# [ -74.25,   40.75],
-# [ -74.  ,   40.75],
-# [ -73.75,   40.75],
-# [ -73.75,   41.  ],
-
-# MADRID
-# [  -4.  ,   40.25],
-# [  -3.75,   40.25],
-# [  -3.75,   40.5 ],
-# [  -3.5 ,   40.25],
-# [  -3.5 ,   40.5 ],
-
-# LONDON 
-# [  -0.25,   51.5 ],
-# [   0.  ,   51.5 ],
-# [   0.25,   51.5 ],
-
-# PARIS
-# [   2.25,   48.75],
-# [   2.25,   49.  ],
-# [   2.5 ,   48.75],
-# [   2.5 ,   49.  ],
-# [   2.75,   48.75],
-
-# WUHAN
-# [ 114.25,   30.5 ],
-# [ 114.25,   30.75],
-# [ 114.5 ,   30.5 ],
-
-# BEIJING
-# [ 116.25,   39.75],
-# [ 116.25,   40.  ],
-# [ 116.5 ,   39.75],
-# [ 116.5 ,   40.  ]])
-
-
-
-
-
-
-
-# import argparse
-# def parse_args():
-#     p = argparse.ArgumentParser(description='Undef certain variables')
-#     p.add_argument('-o','--obsfile',type=str,help='observation file',default='https://gmao.gsfc.nasa.gov/gmaoftp/geoscf/COVID_NO2/examples/obs.csv')
-#     p.add_argument('-m','--modfile',type=str,help='model file',default='https://gmao.gsfc.nasa.gov/gmaoftp/geoscf/COVID_NO2/examples/model.csv')
-#     p.add_argument('-c','--cities',type=str,nargs="+",help='city names',default='NewYork')
-#     p.add_argument('-n','--nsplit',type=int,help='number of cross-fold validations',default=8)
-#     p.add_argument('-v','--validate',type=int,help='make validation figures (1=yes; 0=no)?',default=0)
-#     p.add_argument('-s','--shap',type=int,help='plot shap values for each city (1=yes; 0=no)?',default=0)
-#     p.add_argument('-mn','--minnobs',type=int,help='minimum number of required observations (for training)',default=8760)
-#     return p.parse_args()
-
-
-# args = parse_args()
+import argparse
+def parse_args():
+    p = argparse.ArgumentParser(description='Undef certain variables')
+    p.add_argument('-o','--obsfile',type=str,help='observation file',default='https://gmao.gsfc.nasa.gov/gmaoftp/geoscf/COVID_NO2/examples/obs.csv')
+    p.add_argument('-m','--modfile',type=str,help='model file',default='https://gmao.gsfc.nasa.gov/gmaoftp/geoscf/COVID_NO2/examples/model.csv')
+    p.add_argument('-c','--cities',type=str,nargs="+",help='city names',default='NewYork')
+    p.add_argument('-n','--nsplit',type=int,help='number of cross-fold validations',default=8)
+    p.add_argument('-v','--validate',type=int,help='make validation figures (1=yes; 0=no)?',default=0)
+    p.add_argument('-s','--shap',type=int,help='plot shap values for each city (1=yes; 0=no)?',default=0)
+    p.add_argument('-mn','--minnobs',type=int,help='minimum number of required observations (for training)',default=8760)
+    return p.parse_args()
+args = parse_args()
 
 
