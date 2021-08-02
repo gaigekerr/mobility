@@ -193,30 +193,39 @@ def build_focuscities():
     # focuscities['level3end'] = np.nan
     focuscities['start'] = np.nan
     focuscities['end'] = np.nan    
-    
+    focuscities['startreq'] = np.nan
+    focuscities['endreq'] = np.nan
     # Loop through cities and determine the dates of lockdowns
     for index, row in focuscities.iterrows():
         country = row['Country']
         sah_country = sah.loc[sah['Entity']==country]
         # Restrict to measuring period
         sah_country = sah_country.loc[sah_country['Day']<'2020-07-01']
-        # First occurrences of level 2-3 stay at home requirements 
+        # Occurrences of ALL recommended or required stay-at-home measures
         where1 = np.where(sah_country['stay_home_requirements']==1.)[0]
         where2 = np.where(sah_country['stay_home_requirements']==2.)[0]
         where3 = np.where(sah_country['stay_home_requirements']==3.)[0]  
-        # 
         start = min(np.hstack([where1,where2,where3]))
         startdate = sah_country['Day'].values[start]
-        # 
         end = max(np.hstack([where1,where2,where3]))
         enddate = sah_country['Day'].values[end]
-        
         if pd.to_datetime(enddate) > pd.to_datetime('2020-06-30'):
             enddate = '2020-06-30'
-        
         focuscities.loc[index, 'start'] = startdate
         focuscities.loc[index, 'end'] = enddate
-        
+        # Occurrences of REQUIRED stay-at-home measures
+        if (np.shape(where2)[0]!=0) or (np.where(where3)[0]!=0):
+            start = min(np.hstack([where2,where3]))
+            startdate = sah_country['Day'].values[start]
+            end = max(np.hstack([where2,where3]))
+            enddate = sah_country['Day'].values[end]
+            if pd.to_datetime(enddate) > pd.to_datetime('2020-06-30'):
+                enddate = '2020-06-30'
+            focuscities.loc[index, 'startreq'] = startdate
+            focuscities.loc[index, 'endreq'] = enddate
+        else: 
+            focuscities.loc[index, 'startreq'] = np.nan
+            focuscities.loc[index, 'endreq'] = np.nan            
         # # First occurrences of level 2-3 stay at home requirements 
         # where1 = np.where(sah_country['stay_home_requirements']==1.)[0]
         # where2 = np.where(sah_country['stay_home_requirements']==2.)[0]
@@ -534,6 +543,181 @@ def fig2(focuscities, bcm):
     # plt.savefig(DIR_FIG+'fig2_citynames.png', dpi=1000)    
     # plt.savefig(DIR_FIG+'fig2.png', dpi=1000)
     return  
+
+def fig3(focuscities, bcm):
+    import matplotlib.pyplot as plt
+    from dateutil.relativedelta import relativedelta
+    import matplotlib as mpl
+    import numpy as np
+    import netCDF4 as nc
+    import sys
+    sys.path.append('/Users/ghkerr/phd/GMI/')
+    from geo_idx import geo_idx
+    # Open EMEP (2017 gridded emissions at 0.1 deg x 0.1 deg resolution)
+    emep = nc.Dataset(DIR_EMISSIONS+'emep/NOx_2019_GRID_1990_to_2017.nc')
+    lat_emep = emep.variables['lat'][:]
+    lng_emep = emep.variables['lon'][:]
+    time_emep = emep.variables['time']
+    time_emep = nc.num2date(time_emep[:], time_emep.units)
+    roadtransport_emep = emep.variables['roadtransport'][:]
+    sumallsectors_emep = emep.variables['sumallsectors'][:]
+    frac_emep = roadtransport_emep[-1]/sumallsectors_emep[-1]
+    # Open EDGAR (2015 gridded emissions at 0.1 deg x 0.1 deg resolution)
+    roadtransport_edgar = nc.Dataset(DIR_EMISSIONS+
+        'edgar/v50_NOx_2015_TRO_noRES.0.1x0.1.nc')
+    total_edgar = nc.Dataset(DIR_EMISSIONS+
+        'edgar/v50_NOx_2015.0.1x0.1.nc')
+    lat_edgar = total_edgar.variables['lat'][:]
+    lng_edgar = total_edgar.variables['lon'][:]
+    lng_edgar = (lng_edgar + 180) % 360 - 180
+    total_edgar = total_edgar.variables['emi_nox'][:]
+    roadtransport_edgar = roadtransport_edgar.variables['emi_nox'][:]
+    frac_edgar = roadtransport_edgar/total_edgar
+    # Open CEDS
+    ceds = nc.Dataset(DIR_EMISSIONS+'ceds/NO-em-total-anthro_CEDS_2017.nc')
+    lng_ceds = ceds.variables['lon'][:]
+    lat_ceds = ceds.variables['lat'][:]
+    agr_ceds = np.nansum(ceds.variables['NO_agr'][:], axis=0)
+    ene_ceds = np.nansum(ceds.variables['NO_ene'][:], axis=0)
+    ind_ceds = np.nansum(ceds.variables['NO_ind'][:], axis=0)
+    nrtr_ceds = np.nansum(ceds.variables['NO_nrtr'][:], axis=0)
+    rcoc_ceds = np.nansum(ceds.variables['NO_rcoc'][:], axis=0)
+    rcoo_ceds = np.nansum(ceds.variables['NO_rcoo'][:], axis=0)
+    rcor_ceds = np.nansum(ceds.variables['NO_rcor'][:], axis=0)
+    road_ceds = np.nansum(ceds.variables['NO_road'][:], axis=0)
+    shp_ceds = np.nansum(ceds.variables['NO_shp'][:], axis=0)
+    slv_ceds = np.nansum(ceds.variables['NO_slv'][:], axis=0)
+    wst_ceds = np.nansum(ceds.variables['NO_wst'][:], axis=0)
+    total_ceds = (agr_ceds+ene_ceds+ind_ceds+nrtr_ceds+rcoc_ceds+rcoo_ceds+
+        rcor_ceds+road_ceds+shp_ceds+slv_ceds+wst_ceds)
+    frac_ceds = road_ceds/total_ceds
+    # Loop through cities
+    fraccities_ceds, fraccities_edgar, fraccities_emep = [], [], []
+    idx_ceds, idx_edgar, idx_emep = [], [], []
+    dno2, cities = [], []
+    i = 0
+    for city in focuscities['City']:
+        # Find coordinates in city 
+        citycoords = stationcoords.loc[stationcoords['City']==city]
+        fraccity_ceds, fraccity_edgar, fraccity_emep = [], [], []
+        for index, row in citycoords.iterrows():
+            # EMEP near AQ monitor; note that EMEP is only for the ~European
+            # domain, so only consider cities in the EU
+            lng_emep_closest = geo_idx(row['Longitude'], lng_emep)
+            lat_emep_closest = geo_idx(row['Latitude'], lat_emep)
+            if (lat_emep_closest is None) or (lng_emep_closest is None):
+                fraccity_emep.append(np.nan)
+            else:
+                fraccity_emep.append(frac_emep[lat_emep_closest, 
+                    lng_emep_closest])
+            # EDGAR near AQ monitor
+            lng_edgar_closest = geo_idx(row['Longitude'], lng_edgar)
+            lat_edgar_closest = geo_idx(row['Latitude'], lat_edgar)
+            fraccity_edgar.append(frac_edgar[lat_edgar_closest, lng_edgar_closest])
+            # CEDS near AQ monitor
+            lng_ceds_closest = geo_idx(row['Longitude'], lng_ceds)
+            lat_ceds_closest = geo_idx(row['Latitude'], lat_ceds)
+            fraccity_ceds.append(frac_ceds[lat_ceds_closest, lng_ceds_closest])
+        fraccities_ceds.append(np.nanmean(fraccity_ceds))
+        idx_emep.append(i)
+        i = i+1    
+        fraccities_edgar.append(np.nanmean(fraccity_edgar))
+        idx_edgar.append(i)
+        i = i+1    
+        fraccities_emep.append(np.nanmean(fraccity_emep))
+        idx_ceds.append(i)
+        i = i+3  
+        # Find dNO2 in city 
+        bcm_city = bcm.loc[bcm['City']==city]
+        bcm_city.set_index('Date', inplace=True)
+        # Figure out lockdown dates
+        ldstart = focuscities.loc[focuscities['City']==city]['start'].values[0]
+        ldstart = pd.to_datetime(ldstart)
+        ldend = focuscities.loc[focuscities['City']==city]['end'].values[0]
+        ldend = pd.to_datetime(ldend)
+        # Calculate percentage change in NO2 during lockdown periods
+        before = np.nanmean(bcm_city.loc[ldstart-relativedelta(years=1):
+            ldend-relativedelta(years=1)]['predicted'])
+        after = np.abs(np.nanmean(bcm_city.loc[ldstart:ldend]['anomaly']))
+        pchange = -after/before*100
+        # Save output
+        dno2.append(pchange)
+        if ' C40' in city:
+            city = city[:-4]
+        cities.append(city)
+    dno2 = np.array(dno2)
+    cities = np.array(cities)
+    # Force Athens from 0.93 to 0.80 and force Sofia from 0.88 to 0.80
+    fraccities_emep[0] = 0.799
+    fraccities_emep[-6] = 0.799
+    # Create colormap
+    cmap = plt.cm.copper
+    bounds = np.linspace(-60, 0, 7)
+    norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
+    # Plotting
+    fig = plt.figure(figsize=(8.5,6))
+    ax1 = plt.subplot2grid((1,2),(0,0))
+    ax2 = plt.subplot2grid((1,2),(0,1))
+    breaker = 13
+    width = 1
+    ax1.barh(idx_ceds[:breaker], fraccities_ceds[:breaker], width, 
+        color=cmap(norm(dno2))[:breaker], edgecolor='k')
+    ax1.barh(idx_edgar[:breaker], fraccities_edgar[:breaker], width, 
+        color=cmap(norm(dno2))[:breaker], edgecolor='k')
+    ax1.barh(idx_emep[:breaker], fraccities_emep[:breaker], width, 
+        color=cmap(norm(dno2))[:breaker], edgecolor='k')
+    ax1.set_yticks(idx_edgar[:breaker])
+    ax1.set_yticklabels(cities[:breaker])
+    ax2.barh(idx_ceds[breaker:], fraccities_ceds[breaker:], width, 
+        color=cmap(norm(dno2))[breaker:], edgecolor='k')
+    ax2.barh(idx_edgar[breaker:], fraccities_edgar[breaker:], width,
+        color=cmap(norm(dno2))[breaker:], edgecolor='k')
+    plot = ax2.barh(idx_emep[breaker:], fraccities_emep[breaker:], width, 
+        color=cmap(norm(dno2))[breaker:], edgecolor='k')
+    ax2.set_yticks(idx_edgar[breaker:])
+    ax2.set_yticklabels(cities[breaker:])
+    # Make quasi-legend
+    ax1.text(0.81, 0, 'EMEP', ha='left', va='center')
+    ax1.text(0.25, 2, 'EDGAR', va='center')
+    ax1.plot([fraccities_edgar[0]+0.02, 0.24], [1.25,2],'k', lw=0.5)
+    ax1.text(0.25, 4, 'CEDS', va='center')
+    ax1.plot([fraccities_ceds[0]+0.02, 0.24], [2.25,4],'k', lw=0.5)
+    # Aesthetics  
+    for i in idx_edgar[:breaker]:
+        ax1.vlines(0, i-2, i+2, color='k', ls='-', lw=2, zorder=5)
+    for i in idx_edgar[breaker:]:
+        ax2.vlines(0, i-2, i+2, color='k', ls='-', lw=2, zorder=5)    
+    for ax in [ax1, ax2]:
+        for side in ['top', 'bottom', 'left', 'right']:
+            ax.spines[side].set_visible(False)
+        ax.set_xlim([0, 0.8])
+        ax.set_xticks([0, 0.2, 0.4, 0.6, 0.8])
+        ax.set_xticklabels(['0%','20%','40%','60%','80%'])
+        ax.xaxis.tick_top()
+        ax.tick_params(axis=u'x', which=u'both',length=0, pad=-6)
+        ax.tick_params(axis=u'y', which=u'both',length=0, pad=3) 
+    # Grid lines
+    ax1.set_ylim([-3, 65])
+    for vlin in [0.2, 0.4, 0.6, 0.8]:
+        ax1.vlines(vlin, -1, 63, color='darkgrey', 
+            linestyle='-', lw=0.5, zorder=0)    
+    ax2.set_ylim([62, 130])
+    for vlin in [0.2, 0.4, 0.6, 0.8]:
+        ax2.vlines(vlin, 64, 128, color='darkgrey', 
+            linestyle='-', lw=0.5, zorder=0)    
+    plt.subplots_adjust(wspace=0.4, right=0.95, top=0.95)
+    # Colorbar for dNO2
+    half1 = (ax1.get_position().x1+ax1.get_position().x0)/2.
+    half2 = (ax2.get_position().x1+ax2.get_position().x0)/2. 
+    caxbase = fig.add_axes([half1, ax1.get_position().y0-0.02, 
+        (half2-half1), 0.02])
+    cb = mpl.colorbar.ColorbarBase(caxbase, cmap=cmap, norm=norm, 
+        spacing='proportional', orientation='horizontal', extend='both',
+        label='$\mathregular{\Delta}$ NO$_{\mathregular{2}}$ [%]')
+    for ax in [ax1, ax2]:
+        ax.invert_yaxis()
+    plt.savefig(DIR_FIG+'fig3.png', dpi=1000)
+    return 
 
 def figS1():
     """    
@@ -1064,8 +1248,110 @@ def figS5():
     ax1.tick_params(labelsize=9)
     ax1.set_xlim([-1,71])
     ax1.set_ylim([-65,5])
-    # plt.savefig(DIR_FIG+'figS4_citynames.png', dpi=1000)    
-    plt.savefig(DIR_FIG+'figS4.png', dpi=1000)
+    # plt.savefig(DIR_FIG+'figS5_citynames.png', dpi=1000)    
+    plt.savefig(DIR_FIG+'figS5.png', dpi=1000)
+    return
+
+def figS6(focuscities):
+    """
+    """
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    import matplotlib as mpl
+    from dateutil.relativedelta import relativedelta
+    from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+    import scipy.odr    
+    import scipy.stats
+    dno2, no2, diesel, cities = [], [], [], []
+    for index, row in focuscities.iterrows():
+        city = row['City']
+        print(city)
+        bcm_city = bcm.loc[bcm['City']==city]
+        bcm_city.set_index('Date', inplace=True)
+        # Figure out REQUIRED lockdown dates
+        ldstart = focuscities.loc[focuscities['City']==city]['startreq'].values[0]
+        ldstart = pd.to_datetime(ldstart)
+        ldend = focuscities.loc[focuscities['City']==city]['endreq'].values[0]
+        ldend = pd.to_datetime(ldend)
+        if pd.isnull(ldstart)==False:
+            before = np.nanmean(bcm_city.loc[ldstart-relativedelta(years=1):
+                ldend-relativedelta(years=1)]['predicted'])
+            after = np.abs(np.nanmean(bcm_city.loc[ldstart:ldend]['anomaly']))
+            pchange = -after/before*100
+            dno2.append(pchange)
+        else: 
+            dno2.append(np.nan)
+        no2.append(bcm_city['observed']['2019-01-01':'2019-12-31'].mean())
+        diesel.append(focuscities.loc[focuscities['City']==city]['Diesel share'].values[0])
+        cities.append(focuscities.loc[focuscities['City']==city]['City'].values[0])
+    diesel = np.array(diesel)
+    cities = np.array(cities)
+    no2 = np.array(no2)
+    dno2 = np.array(dno2)
+    cmap = plt.get_cmap("pink_r")
+    cmap = truncate_colormap(cmap, 0.4, 0.9)
+    cmaplist = [cmap(i) for i in range(cmap.N)]
+    cmap = mpl.colors.LinearSegmentedColormap.from_list('Custom cmap', 
+        cmaplist, cmap.N)
+    cmap.set_over(color='k')
+    bounds = np.linspace(8, 20, 7)
+    norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
+    # Calculate slope with total least squares (ODR)
+    idx = np.isfinite(diesel) & np.isfinite(dno2)
+    Model = scipy.odr.Model(fit_func)
+    odr = scipy.odr.RealData(diesel[idx], dno2[idx])
+    odr = scipy.odr.ODR(odr, Model,[np.polyfit(diesel[idx], dno2[idx], 1)[1],
+        np.polyfit(diesel[idx], dno2[idx], 1)[0]], maxit=10000)
+    output = odr.run() 
+    beta = output.beta
+    print('Equation coefficients should match the following:')
+    print(beta)    
+    # Plotting
+    fig = plt.figure(figsize=(6,4))
+    ax1 = plt.subplot2grid((1,1),(0,0))
+    mb = ax1.scatter(diesel, dno2, c=no2, s=18, cmap=cmap, norm=norm, 
+        clip_on=False)
+    # Cities exceeding WHO guidelines
+    ax1.scatter(diesel[np.where(no2>40/1.88)], dno2[np.where(no2>40/1.88)], 
+        s=19, ec='r', fc='None', norm=norm, clip_on=False)
+    ax1.set_xlabel(r'Market shares of diesel-powered passenger vehicles [%]')
+    ax1.set_ylabel(r'$\mathregular{\Delta}$ NO$_{\mathregular{2}}$ [%]')
+    ax1.plot(np.sort(diesel), fit_func(beta, np.sort(diesel)), 'darkgrey', 
+        ls='--', lw=1, zorder=0)    
+    txtstr = r'$\mathregular{\Delta}\:$NO$_{\mathregular{2}}$ = -0.82'+\
+        r'$\:\mathregular{\times}\:$MSDPV'+\
+        '\n'+\
+        r'$\:-\:$1.22'
+    ax1.text(44, -8, txtstr, color='darkgrey')
+    # for i, txt in enumerate(cities):
+    #     if txt == 'Santiago C40':
+    #         txt = 'Santiago'
+    #     elif txt == 'Mexico City C40':
+    #         txt = 'Mexico City'
+    #     elif txt == 'Los Angeles C40':
+    #         txt = 'Los Angeles'
+    #     elif txt == 'Berlin C40':
+    #         txt = 'Berlin'
+    #     elif txt == 'Milan C40':
+    #         txt = 'Milan'
+    #     elif txt == 'London C40':
+    #         txt = 'London'
+    #     elif txt == 'Auckland C40':
+    #         txt = 'Auckland'        
+    #     ax1.annotate(txt, (diesel[i]+1, dno2[i]+1), fontsize=9)
+    axins1 = inset_axes(ax1, width='40%', height='5%', loc='lower left', 
+        bbox_to_anchor=(0.02, 0.04, 1, 1), bbox_transform=ax1.transAxes,
+        borderpad=0)
+    fig.colorbar(mb, cax=axins1, orientation="horizontal", extend='both', 
+        label='NO$_{\mathregular{2}}$ [ppbv]')
+    axins1.xaxis.set_ticks_position('top')
+    axins1.xaxis.set_label_position('top')
+    ax1.tick_params(labelsize=9)
+    ax1.set_xlim([-1,71])
+    ax1.set_ylim([-75,0])
+    # plt.savefig(DIR_FIG+'figS6_citynames.png', dpi=1000)    
+    # plt.savefig(DIR_FIG+'figS6.png', dpi=1000)
     return
 
 # import datetime as dt
@@ -1312,8 +1598,6 @@ def figS5():
 # shaps_concat = pd.concat(shaps_all)
 # shaps_lon = pd.concat(shaps_lon)
         
-
-        
 # fig1()
 # fig2(focuscities, bcm)  
 # fig3()
@@ -1322,182 +1606,8 @@ def figS5():
 # figS3()
 # figS4()
 # figS5()
-
-def fig3(focuscities, bcm):
-    import matplotlib.pyplot as plt
-    from dateutil.relativedelta import relativedelta
-    import matplotlib as mpl
-    import numpy as np
-    import netCDF4 as nc
-    import sys
-    sys.path.append('/Users/ghkerr/phd/GMI/')
-    from geo_idx import geo_idx
-    # Open EMEP (2017 gridded emissions at 0.1 deg x 0.1 deg resolution)
-    emep = nc.Dataset(DIR_EMISSIONS+'emep/NOx_2019_GRID_1990_to_2017.nc')
-    lat_emep = emep.variables['lat'][:]
-    lng_emep = emep.variables['lon'][:]
-    time_emep = emep.variables['time']
-    time_emep = nc.num2date(time_emep[:], time_emep.units)
-    roadtransport_emep = emep.variables['roadtransport'][:]
-    sumallsectors_emep = emep.variables['sumallsectors'][:]
-    frac_emep = roadtransport_emep[-1]/sumallsectors_emep[-1]
-    # Open EDGAR (2015 gridded emissions at 0.1 deg x 0.1 deg resolution)
-    roadtransport_edgar = nc.Dataset(DIR_EMISSIONS+
-        'edgar/v50_NOx_2015_TRO_noRES.0.1x0.1.nc')
-    total_edgar = nc.Dataset(DIR_EMISSIONS+
-        'edgar/v50_NOx_2015.0.1x0.1.nc')
-    lat_edgar = total_edgar.variables['lat'][:]
-    lng_edgar = total_edgar.variables['lon'][:]
-    lng_edgar = (lng_edgar + 180) % 360 - 180
-    total_edgar = total_edgar.variables['emi_nox'][:]
-    roadtransport_edgar = roadtransport_edgar.variables['emi_nox'][:]
-    frac_edgar = roadtransport_edgar/total_edgar
-    # Open CEDS
-    ceds = nc.Dataset(DIR_EMISSIONS+'ceds/NO-em-total-anthro_CEDS_2017.nc')
-    lng_ceds = ceds.variables['lon'][:]
-    lat_ceds = ceds.variables['lat'][:]
-    agr_ceds = np.nansum(ceds.variables['NO_agr'][:], axis=0)
-    ene_ceds = np.nansum(ceds.variables['NO_ene'][:], axis=0)
-    ind_ceds = np.nansum(ceds.variables['NO_ind'][:], axis=0)
-    nrtr_ceds = np.nansum(ceds.variables['NO_nrtr'][:], axis=0)
-    rcoc_ceds = np.nansum(ceds.variables['NO_rcoc'][:], axis=0)
-    rcoo_ceds = np.nansum(ceds.variables['NO_rcoo'][:], axis=0)
-    rcor_ceds = np.nansum(ceds.variables['NO_rcor'][:], axis=0)
-    road_ceds = np.nansum(ceds.variables['NO_road'][:], axis=0)
-    shp_ceds = np.nansum(ceds.variables['NO_shp'][:], axis=0)
-    slv_ceds = np.nansum(ceds.variables['NO_slv'][:], axis=0)
-    wst_ceds = np.nansum(ceds.variables['NO_wst'][:], axis=0)
-    total_ceds = (agr_ceds+ene_ceds+ind_ceds+nrtr_ceds+rcoc_ceds+rcoo_ceds+
-        rcor_ceds+road_ceds+shp_ceds+slv_ceds+wst_ceds)
-    frac_ceds = road_ceds/total_ceds
-    # Loop through cities
-    fraccities_ceds, fraccities_edgar, fraccities_emep = [], [], []
-    idx_ceds, idx_edgar, idx_emep = [], [], []
-    dno2, cities = [], []
-    i = 0
-    for city in focuscities['City']:
-        # Find coordinates in city 
-        citycoords = stationcoords.loc[stationcoords['City']==city]
-        fraccity_ceds, fraccity_edgar, fraccity_emep = [], [], []
-        for index, row in citycoords.iterrows():
-            # EMEP near AQ monitor; note that EMEP is only for the ~European
-            # domain, so only consider cities in the EU
-            lng_emep_closest = geo_idx(row['Longitude'], lng_emep)
-            lat_emep_closest = geo_idx(row['Latitude'], lat_emep)
-            if (lat_emep_closest is None) or (lat_emep_closest is None):
-                fraccity_emep.append(np.nan)
-            else:
-                fraccity_emep.append(frac_emep[lat_emep_closest, 
-                    lng_emep_closest])
-            # EDGAR near AQ monitor
-            lng_edgar_closest = geo_idx(row['Longitude'], lng_edgar)
-            lat_edgar_closest = geo_idx(row['Latitude'], lat_edgar)
-            fraccity_edgar.append(frac_edgar[lat_edgar_closest, lng_edgar_closest])
-            # CEDS near AQ monitor
-            lng_ceds_closest = geo_idx(row['Longitude'], lng_ceds)
-            lat_ceds_closest = geo_idx(row['Latitude'], lat_ceds)
-            fraccity_ceds.append(frac_ceds[lat_ceds_closest, lng_ceds_closest])
-        fraccities_ceds.append(np.nanmean(fraccity_ceds))
-        idx_emep.append(i)
-        i = i+1    
-        fraccities_edgar.append(np.nanmean(fraccity_edgar))
-        idx_edgar.append(i)
-        i = i+1    
-        fraccities_emep.append(np.nanmean(fraccity_emep))
-        idx_ceds.append(i)
-        i = i+3  
-        # Find dNO2 in city 
-        bcm_city = bcm.loc[bcm['City']==city]
-        bcm_city.set_index('Date', inplace=True)
-        # Figure out lockdown dates
-        ldstart = focuscities.loc[focuscities['City']==city]['start'].values[0]
-        ldstart = pd.to_datetime(ldstart)
-        ldend = focuscities.loc[focuscities['City']==city]['end'].values[0]
-        ldend = pd.to_datetime(ldend)
-        # Calculate percentage change in NO2 during lockdown periods
-        before = np.nanmean(bcm_city.loc[ldstart-relativedelta(years=1):
-            ldend-relativedelta(years=1)]['predicted'])
-        after = np.abs(np.nanmean(bcm_city.loc[ldstart:ldend]['anomaly']))
-        pchange = -after/before*100
-        # Save output
-        dno2.append(pchange)
-        if ' C40' in city:
-            city = city[:-4]
-        cities.append(city)
-    dno2 = np.array(dno2)
-    cities = np.array(cities)
-    # Force Athens from 0.93 to 0.80 and force Sofia from 0.88 to 0.80
-    fraccities_emep[0] = 0.799
-    fraccities_emep[-6] = 0.799
-    # Create colormap
-    cmap = plt.cm.copper
-    bounds = np.linspace(-60, 0, 7)
-    norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
-    # Plotting
-    fig = plt.figure(figsize=(8.5,6))
-    ax1 = plt.subplot2grid((1,2),(0,0))
-    ax2 = plt.subplot2grid((1,2),(0,1))
-    breaker = 13
-    width = 1
-    ax1.barh(idx_ceds[:breaker], fraccities_ceds[:breaker], width, 
-        color=cmap(norm(dno2))[:breaker], edgecolor='k')
-    ax1.barh(idx_edgar[:breaker], fraccities_edgar[:breaker], width, 
-        color=cmap(norm(dno2))[:breaker], edgecolor='k')
-    ax1.barh(idx_emep[:breaker], fraccities_emep[:breaker], width, 
-        color=cmap(norm(dno2))[:breaker], edgecolor='k')
-    ax1.set_yticks(idx_edgar[:breaker])
-    ax1.set_yticklabels(cities[:breaker])
-    ax2.barh(idx_ceds[breaker:], fraccities_ceds[breaker:], width, 
-        color=cmap(norm(dno2))[breaker:], edgecolor='k')
-    ax2.barh(idx_edgar[breaker:], fraccities_edgar[breaker:], width,
-        color=cmap(norm(dno2))[breaker:], edgecolor='k')
-    plot = ax2.barh(idx_emep[breaker:], fraccities_emep[breaker:], width, 
-        color=cmap(norm(dno2))[breaker:], edgecolor='k')
-    ax2.set_yticks(idx_edgar[breaker:])
-    ax2.set_yticklabels(cities[breaker:])
-    # Make quasi-legend
-    ax1.text(0.81, 0, 'EMEP', ha='left', va='center')
-    ax1.text(0.25, 2, 'EDGAR', va='center')
-    ax1.plot([fraccities_edgar[0]+0.02, 0.24], [1.25,2],'k', lw=0.5)
-    ax1.text(0.25, 4, 'CEDS', va='center')
-    ax1.plot([fraccities_ceds[0]+0.02, 0.24], [2.25,4],'k', lw=0.5)
-    # Aesthetics  
-    for i in idx_edgar[:breaker]:
-        ax1.vlines(0, i-2, i+2, color='k', ls='-', lw=2, zorder=5)
-    for i in idx_edgar[breaker:]:
-        ax2.vlines(0, i-2, i+2, color='k', ls='-', lw=2, zorder=5)    
-    for ax in [ax1, ax2]:
-        for side in ['top', 'bottom', 'left', 'right']:
-            ax.spines[side].set_visible(False)
-        ax.set_xlim([0, 0.8])
-        ax.set_xticks([0, 0.2, 0.4, 0.6, 0.8])
-        ax.set_xticklabels(['0%','20%','40%','60%','80%'])
-        ax.xaxis.tick_top()
-        ax.tick_params(axis=u'x', which=u'both',length=0, pad=-6)
-        ax.tick_params(axis=u'y', which=u'both',length=0, pad=3) 
-    # Grid lines
-    ax1.set_ylim([-3, 65])
-    for vlin in [0.2, 0.4, 0.6, 0.8]:
-        ax1.vlines(vlin, -1, 63, color='darkgrey', 
-            linestyle='-', lw=0.5, zorder=0)    
-    ax2.set_ylim([62, 130])
-    for vlin in [0.2, 0.4, 0.6, 0.8]:
-        ax2.vlines(vlin, 64, 128, color='darkgrey', 
-            linestyle='-', lw=0.5, zorder=0)    
-    plt.subplots_adjust(wspace=0.4, right=0.95, top=0.95)
-    # Colorbar for dNO2
-    half1 = (ax1.get_position().x1+ax1.get_position().x0)/2.
-    half2 = (ax2.get_position().x1+ax2.get_position().x0)/2. 
-    caxbase = fig.add_axes([half1, ax1.get_position().y0-0.02, 
-        (half2-half1), 0.02])
-    cb = mpl.colorbar.ColorbarBase(caxbase, cmap=cmap, norm=norm, 
-        spacing='proportional', orientation='horizontal', extend='both',
-        label='$\mathregular{\Delta}$ NO$_{\mathregular{2}}$ [%]')
-    for ax in [ax1, ax2]:
-        ax.invert_yaxis()
-    plt.savefig(DIR_FIG+'fig3.png', dpi=1000)
-    return 
-
+# figS6()
+    
 """"TRAFFIC DATA SENSITIVITY"""
 # import numpy as np
 # import pandas as pd
