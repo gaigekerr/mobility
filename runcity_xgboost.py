@@ -769,6 +769,11 @@ def figS1():
         axes[i].plot(citycoords['Longitude'], citycoords['Latitude'], 
             marker='o', lw=0, markersize=3, color=agred, 
             transform=ccrs.PlateCarree())
+        # Add marker for Vilnius heating plant
+        if city=='Vilnius':
+            axes[i].plot(25.157202, 54.667939, marker='s', lw=0, 
+                markersize=5, color=agnavy, 
+                transform=ccrs.PlateCarree())        
         if ' C40' in city:
             city = city[:-4]
             axes[i].set_title(city, loc='left')
@@ -778,6 +783,11 @@ def figS1():
             citycoords['Longitude'].max()+0.2, 
             citycoords['Latitude'].min()-0.2, 
             citycoords['Latitude'].max()+0.2]
+        if city=='Vilnius':        
+            extent = [citycoords['Longitude'].min()-0.1, 
+                citycoords['Longitude'].max()+0.1, 
+                citycoords['Latitude'].min()-0.05, 
+                citycoords['Latitude'].max()+0.05]    
         request = cimgt.Stamen()
         axes[i].set_extent(extent)
         axes[i].add_image(request, 11)
@@ -1322,7 +1332,7 @@ def figS6(focuscities):
     txtstr = r'$\mathregular{\Delta}\:$NO$_{\mathregular{2}}$ = -0.82'+\
         r'$\:\mathregular{\times}\:$MSDPV'+\
         '\n'+\
-        r'$\:-\:$1.22'
+        r'$\:+\:$1.22'
     ax1.text(44, -8, txtstr, color='darkgrey')
     # for i, txt in enumerate(cities):
     #     if txt == 'Santiago C40':
@@ -1338,8 +1348,8 @@ def figS6(focuscities):
     #     elif txt == 'London C40':
     #         txt = 'London'
     #     elif txt == 'Auckland C40':
-    #         txt = 'Auckland'        
-    #     ax1.annotate(txt, (diesel[i]+1, dno2[i]+1), fontsize=9)
+    #         txt = 'Auckland'
+        # ax1.annotate(txt, (diesel[i]+1, dno2[i]+1), fontsize=9)
     axins1 = inset_axes(ax1, width='40%', height='5%', loc='lower left', 
         bbox_to_anchor=(0.02, 0.04, 1, 1), bbox_transform=ax1.transAxes,
         borderpad=0)
@@ -1351,7 +1361,7 @@ def figS6(focuscities):
     ax1.set_xlim([-1,71])
     ax1.set_ylim([-75,0])
     # plt.savefig(DIR_FIG+'figS6_citynames.png', dpi=1000)    
-    # plt.savefig(DIR_FIG+'figS6.png', dpi=1000)
+    plt.savefig(DIR_FIG+'figS6.png', dpi=1000)
     return
 
 # import datetime as dt
@@ -1606,7 +1616,7 @@ def figS6(focuscities):
 # figS3()
 # figS4()
 # figS5()
-# figS6()
+figS6(focuscities)
     
 """"TRAFFIC DATA SENSITIVITY"""
 # import numpy as np
