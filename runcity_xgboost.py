@@ -121,12 +121,14 @@ def geo_idx(dd, dd_array):
 def func(x, a, c, d):
     return a*np.exp(-c*x)+d
 
-def build_focuscities():
+def build_focuscities(noC40):
     """Build table of focus cities for this study.
 
     Parameters
     ----------
-    None
+    noc40 : bool
+        If True, C40 cities outside of the European Union will be dropped from
+        the DataFrame.
 
     Returns
     -------
@@ -192,7 +194,7 @@ def build_focuscities():
         ['Athens', 'Greece', 8.1], # ACEA 
         ['Auckland C40', 'New Zealand', 8.3], # C40 partnership
         ['Barcelona', 'Spain', 	58.7], # ACEA
-        ['Berlin C40', 'Germany', 31.7], # ACEA
+        ['Berlin', 'Germany', 31.7], # ACEA
         ['Budapest', 'Hungary', 31.5], # ACEA
         ['Copenhagen', 'Denmark', 30.9], # ACEA 
         ['Helsinki', 'Finland', 27.9], # ACEA 
@@ -202,7 +204,7 @@ def build_focuscities():
         ['Madrid', 'Spain', 58.7], # ACEA
         ['Marseille', 'France', 58.9], # ACEA
         ['Mexico City C40', 'Mexico', 0.2], # C40 partnership
-        ['Milan C40', 'Italy', 44.2], # ACEA 
+        ['Milan', 'Italy', 44.2], # ACEA 
         ['Munich', 'Germany', 31.7], # ACEA
         ['Paris', 'France', 58.9], # ACEA
         ['Prague', 'Czechia', 35.9], # ACEA
@@ -228,13 +230,7 @@ def build_focuscities():
     # 3 = Required to not leave the house with minimal exceptions (e.g. 
     #     allowed to leave only once every few days, or only one person 
     #     can leave at a time, etc.)
-    # # Add stay at home requirements to city information DataFrame
-    # focuscities['level1start'] = np.nan
-    # focuscities['level1end'] = np.nan
-    # focuscities['level2start'] = np.nan
-    # focuscities['level2end'] = np.nan
-    # focuscities['level2start'] = np.nan
-    # focuscities['level3end'] = np.nan
+    # Add stay at home requirements to city information DataFrame
     focuscities['start'] = np.nan
     focuscities['end'] = np.nan    
     focuscities['startreq'] = np.nan
@@ -270,50 +266,10 @@ def build_focuscities():
         else: 
             focuscities.loc[index, 'startreq'] = np.nan
             focuscities.loc[index, 'endreq'] = np.nan            
-        # # First occurrences of level 2-3 stay at home requirements 
-        # where1 = np.where(sah_country['stay_home_requirements']==1.)[0]
-        # where2 = np.where(sah_country['stay_home_requirements']==2.)[0]
-        # where3 = np.where(sah_country['stay_home_requirements']==3.)[0]
-        # # Code from above function adapted from https://stackoverflow.com/
-        # # questions/2154249/identify-groups-of-continuous-numbers-in-a-list
-        # where1startend = list(ranges(where1))
-        # where2startend = list(ranges(where2))
-        # where3startend = list(ranges(where3))
-        # try: 
-        #     level1initiate = where1startend[0][0]
-        #     level1end = where1startend[0][-1]
-        #     focuscities.loc[index, 'level1start'] = sah_country['Day'].values[
-        #         level1initiate]
-        #     focuscities.loc[index, 'level1end'] = sah_country['Day'].values[
-        #         level1end]
-        # except IndexError: 
-        #     level1initiate = np.nan
-        #     level1end = np.nan
-        # try: 
-        #     level2initiate = where2startend[0][0]
-        #     level2end = where2startend[0][-1]
-        #     focuscities.loc[index, 'level2start'] = sah_country['Day'].values[
-        #         level2initiate]
-        #     focuscities.loc[index, 'level2end'] = sah_country['Day'].values[
-        #         level2end]
-        # except IndexError: 
-        #     level2initiate = np.nan
-        #     level2end = np.nan
-        # # Last occurrence for the level 2-3 stay at home requirements after 
-        # # the initial implementation (note that this code won't pick up if, 
-        # # for example, there is a level 3 stay at home order that is lifted and 
-        # # then reinstated. It will only index the end of the *first*
-        # # implementation)
-        # try:
-        #     level3initiate = where3startend[0][0]
-        #     level3end = where3startend[0][-1]
-        #     focuscities.loc[index, 'level3start'] = sah_country['Day'].values[
-        #         level3initiate]
-        #     focuscities.loc[index, 'level3end'] = sah_country['Day'].values[
-        #         level3end]
-        # except IndexError: 
-        #     level3initiate = np.nan
-        #     level3end = np.nan
+    if noC40==True: 
+        focuscities.drop(focuscities.loc[focuscities['City'].isin([
+            'Auckland C40', 'Los Angeles C40', 'Mexico City C40',
+            'Santiago C40'])].index, inplace=True)
     return focuscities
 
 def fig2(): 
@@ -472,7 +428,7 @@ def fig2():
     plt.subplots_adjust(left=0.05, right=0.92)
     ax1.set_title('(a) London', x=0.1, y=1.02, fontsize=12)
     ax2.set_title('(b) Absolute SHAP values', y=1.02, loc='left', fontsize=12)
-    plt.savefig(DIR_FIG+'fig2_revised.png', dpi=1000)
+    plt.savefig(DIR_FIG+'fig2_eu.png', dpi=1000)
     return
 
 def fig3(focuscities, bcm):
@@ -541,30 +497,13 @@ def fig3(focuscities, bcm):
     ax1 = plt.subplot2grid((1,1),(0,0))
     mb = ax1.scatter(diesel, dno2, c=no2, s=18, cmap=cmap, norm=norm, 
         clip_on=False)
-    # Cities exceeding WHO guidelines
-    ax1.scatter(diesel[np.where(no2>40/1.88)], dno2[np.where(no2>40/1.88)], 
-        s=19, ec='r', fc='None', norm=norm, clip_on=False)
     ax1.set_xlabel(r'Diesel-powered passenger vehicle share [%]')
     ax1.set_ylabel(r'$\mathregular{\Delta}$ NO$_{\mathregular{2}}$ [%]')
     # Calculate slope with total least squares (ODR)
-    idx = np.isfinite(diesel) & np.isfinite(dno2)
-    Model = scipy.odr.Model(fit_func)
-    odr = scipy.odr.RealData(diesel[idx], dno2[idx])
-    odr = scipy.odr.ODR(odr, Model,[np.polyfit(diesel[idx], dno2[idx], 1)[1],
-        np.polyfit(diesel[idx], dno2[idx], 1)[0]], maxit=10000)
-    slope, intercept, r_value, p_value, std_err = stats.linregress(
-        diesel[idx], dno2[idx])
-    output = odr.run() 
-    beta = output.beta
-    ax1.plot(np.sort(diesel), fit_func(beta, np.sort(diesel)), 'darkgrey', 
-        ls='-', lw=1, zorder=0, label='Linear (y=ax+b)\na=-0.59, b=-2.39')  
-    # Exponential fit
-    popt, pcov = curve_fit(func, diesel, dno2, p0=(-15, 0, 1))
-    xx = np.linspace(np.nanmin(diesel), np.nanmax(diesel), 1000)
-    yy = func(xx, *popt)
-    ax1.plot(xx, yy, lw=1., ls='-.', color='darkgrey', zorder=0, label=
-        'Exponential (y=a$\mathregular{e}^{\mathregular{-bx}}$+c)\n'+
-        'a=-10.42, b=-0.02, c=-2.37')
+    lincoeff = np.poly1d(np.polyfit(diesel, dno2, 1))
+    ax1.plot(np.unique(diesel), np.poly1d(np.polyfit(diesel, dno2, 1)
+        )(np.unique(diesel)), 'black', ls='dashed', lw=1, zorder=0, 
+        label='Linear fit (y=ax+b)\na=-0.53, b=-2.21')
     ax1.legend(frameon=False, loc=9, bbox_to_anchor=(0.5, 1.16), ncol=2)
     axins1 = inset_axes(ax1, width='40%', height='5%', loc='lower left', 
         bbox_to_anchor=(0.02, 0.04, 1, 1), bbox_transform=ax1.transAxes,
@@ -578,21 +517,15 @@ def fig3(focuscities, bcm):
     ax1.set_ylim([-65,5])
     # Calculate r, RMSE for linear vs. power fit
     dno2_sorted = sort_list(dno2, diesel)
-    linfit = fit_func(beta, np.sort(diesel))
-    powerfit = func(np.sort(diesel), *popt)
+    slope, intercept, r_value, p_value, std_err = stats.linregress(
+        dno2, diesel)
     print('Equation coefficients should match the following:')
-    print('Linear: ', beta)
-    print('Exponential: ', popt)
+    print('Linear: ', lincoeff)
     print('Linear correlation between diesel and dNO2=', r_value)
     print('p-value=',p_value)
     print('RMSE for linear fit...', math.sqrt(mean_squared_error(dno2_sorted, 
-        linfit)))
-    print('Correlation for linear fit...', np.corrcoef(dno2_sorted, 
-        linfit)[0,1])
-    print('RMSE for exponential fit...', math.sqrt(mean_squared_error(dno2_sorted, 
-        powerfit)))
-    print('Correlation for linear fit...', np.corrcoef(dno2_sorted, 
-        powerfit)[0,1])
+        np.poly1d(np.polyfit(diesel, dno2, 1)
+        )(diesel))))
     # for i, txt in enumerate(cities):
     #     if txt == 'Santiago C40':
     #         txt = 'Santiago'
@@ -609,11 +542,11 @@ def fig3(focuscities, bcm):
     #     elif txt == 'Auckland C40':
     #         txt = 'Auckland'        
     #     ax1.annotate(txt, (diesel[i]+1, dno2[i]+1), fontsize=9)
-    # plt.savefig(DIR_FIG+'fig3_citynames_revised.png', dpi=1000)    
-    plt.savefig(DIR_FIG+'fig3_revised.png', dpi=1000)
+    # plt.savefig(DIR_FIG+'fig3_citynames_eu.png', dpi=1000)    
+    plt.savefig(DIR_FIG+'fig3_eu.png', dpi=1000)
     return  
 
-def fig4(focuscities, bcm, coarse=False):
+def fig4(focuscities, bcm, stationcoords, coarse=False):
     import matplotlib.pyplot as plt
     from dateutil.relativedelta import relativedelta
     import matplotlib as mpl
@@ -679,6 +612,10 @@ def fig4(focuscities, bcm, coarse=False):
     for city in focuscities['City']:
         # Find coordinates in city 
         citycoords = stationcoords.loc[stationcoords['City']==city]
+        # if city == 'Milan C40':
+            # citycoords = stationcoords.loc[stationcoords['City']=='Milan']
+        # if city == 'Berlin C40':
+            # citycoords = stationcoords.loc[stationcoords['City']=='Berlin']
         tot_ceds, tot_edgar, tot_emep, tot_edgarc, tot_emepc = [], [], [], [], []
         tra_ceds, tra_edgar, tra_emep, tra_edgarc, tra_emepc = [], [], [], [], []
         for index, row in citycoords.iterrows():
@@ -765,7 +702,7 @@ def fig4(focuscities, bcm, coarse=False):
     fig = plt.figure(figsize=(8.5,6))
     ax1 = plt.subplot2grid((1,2),(0,0))
     ax2 = plt.subplot2grid((1,2),(0,1))
-    breaker = 13
+    breaker = 11
     width = 1
     ax1.barh(idx_ceds[:breaker], fraccities_ceds[:breaker], width, 
         color=cmap(norm(dno2))[:breaker], edgecolor='k', clip_on=False)
@@ -792,12 +729,12 @@ def fig4(focuscities, bcm, coarse=False):
     ax2.set_yticks(idx_edgar[breaker:])
     ax2.set_yticklabels(cities[breaker:])
     # # Make quasi-legend
-    ax1.text(fraccities_ceds[0]+0.08, idx_ceds[0]+1.5, 'CEDS', ha='left', va='center')
+    ax1.text(fraccities_ceds[0]+0.08, idx_ceds[0]+1.2, 'CEDS', ha='left', va='center')
+    ax1.plot([fraccities_ceds[0]+0.015, 0.24], [2.25, 2.9],'k', lw=0.5)    
     ax1.plot([fraccities_emepc[0]+0.015, 0.41], [0, 0],'k', lw=0.5)
     ax1.text(0.42, idx_edgar[0]+0.8, 'EDGAR', ha='left', va='center')
     ax1.plot([fraccities_edgarc[0]+0.015, 0.41], [1.25,1.6],'k', lw=0.5)
     ax1.text(0.42, idx_emep[0], 'EMEP', ha='left', va='center')
-    ax1.plot([fraccities_ceds[0]+0.015, 0.24], [2.25, 3.2],'k', lw=0.5)
     # Aesthetics  
     for i in idx_edgar[:breaker]:
         ax1.vlines(-0.001, i-2, i+2, color='k', ls='-', lw=1.1, zorder=5, clip_on=False)
@@ -813,13 +750,13 @@ def fig4(focuscities, bcm, coarse=False):
         ax.tick_params(axis=u'x', which=u'both',length=0, pad=-6)
         ax.tick_params(axis=u'y', which=u'both',length=0, pad=3) 
     # Grid lines
-    ax1.set_ylim([-3, 65])
+    ax1.set_ylim([-3, 55])
     for vlin in [0.2, 0.4, 0.6, 0.8]:
-        ax1.vlines(vlin, -1, 63, color='darkgrey', 
+        ax1.vlines(vlin, -1, 53, color='darkgrey', 
             linestyle='-', lw=0.5, zorder=0)    
-    ax2.set_ylim([62, 130])
+    ax2.set_ylim([52, 110])
     for vlin in [0.2, 0.4, 0.6, 0.8]:
-        ax2.vlines(vlin, 64, 128, color='darkgrey', 
+        ax2.vlines(vlin, 54, 108, color='darkgrey', 
             linestyle='-', lw=0.5, zorder=0)    
     plt.subplots_adjust(wspace=0.5, right=0.95, top=0.95)
     # Colorbar for dNO2
@@ -832,7 +769,7 @@ def fig4(focuscities, bcm, coarse=False):
         label='$\mathregular{\Delta}$ NO$_{\mathregular{2}}$ [%]')
     for ax in [ax1, ax2]:
         ax.invert_yaxis()
-    plt.savefig(DIR_FIG+'fig4_revised.png', dpi=1000)
+    plt.savefig(DIR_FIG+'fig4_eu.png', dpi=1000)
     return
 
 def figS1():
@@ -847,13 +784,13 @@ def figS1():
     # Options that work and look halfway decent are: 'GoogleTiles',
     # 'GoogleWTS', 'QuadtreeTiles', 'Stamen'
     request = cimgt.Stamen()    
-    fig, axes = plt.subplots(figsize=(8.5, 11), nrows=5, ncols=4, 
+    fig, axes = plt.subplots(figsize=(8.5, 11), nrows=5, ncols=3, 
         subplot_kw={'projection':request.crs}) 
     axes = np.hstack(axes)
     # Loop through cities for which we've built BCM/BAU concentrations
     citiesunique = np.unique(bcm.City)
     citiesunique = np.sort(citiesunique)
-    for i, city in enumerate(citiesunique[:20]):
+    for i, city in enumerate(citiesunique[:15]):
         citycoords = stationcoords.loc[stationcoords['City']==city]
         # Plot station coordinates   
         axes[i].plot(citycoords['Longitude'], citycoords['Latitude'], 
@@ -874,13 +811,13 @@ def figS1():
         axes[i].add_image(request, 11)
         axes[i].set_adjustable('datalim')
     plt.subplots_adjust(left=0.03, right=0.97, top=0.97, bottom=0.03)    
-    plt.savefig(DIR_FIG+'figS1a_revised.png', dpi=1000)
+    plt.savefig(DIR_FIG+'figS1a_eu.png', dpi=1000)
     plt.show()
     # For the rest of the focus cities
-    fig, axes = plt.subplots(figsize=(8.5, 11), nrows=5, ncols=4, 
+    fig, axes = plt.subplots(figsize=(8.5, 11), nrows=5, ncols=3, 
         subplot_kw={'projection':request.crs}) 
     axes = np.hstack(axes)
-    for i, city in enumerate(citiesunique[20:]):
+    for i, city in enumerate(citiesunique[15:]):
         citycoords = stationcoords.loc[stationcoords['City']==city]
         axes[i].plot(citycoords['Longitude'], citycoords['Latitude'], 
             marker='o', lw=0, markersize=3, color=agred, 
@@ -909,10 +846,10 @@ def figS1():
         axes[i].add_image(request, 11)
         axes[i].set_adjustable('datalim')
     # Remove blank axes
-    for i in np.arange(6,20,1):
+    for i in np.arange(7,15,1):
         axes[i].axis('off')     
     plt.subplots_adjust(left=0.03, right=0.97, top=0.97, bottom=0.03)
-    plt.savefig(DIR_FIG+'figS1b_revised.png', dpi=1000)
+    plt.savefig(DIR_FIG+'figS1b_eu.png', dpi=1000)
     plt.show()
     return
 
@@ -956,7 +893,7 @@ def figS2():
         # Fill missing values
         idx = pd.date_range('2020-01-15','2020-06-30')
         sah_country = sah_country.reindex(idx, fill_value=np.nan)
-        if cityloc < 13.*2:
+        if cityloc < 11.*2:
             ax1.plot(mobility_city.index, (filler+
                 mobility_city['Volume'].values/100.*-1), color='k')
             pcolorax1.append(sah_country.values)
@@ -1010,7 +947,7 @@ def figS2():
     plt.subplots_adjust(bottom=0.23, top=0.98)
     ax1.legend(handles=legend_elements, loc='center', ncol=1, 
         bbox_to_anchor=(1.15,-0.2), frameon=False, fontsize=10)
-    plt.savefig(DIR_FIG+'figS2_revised.png', dpi=1000)
+    plt.savefig(DIR_FIG+'figS2_eu.png', dpi=1000)
     return
 
 def figS3():
@@ -1101,10 +1038,189 @@ def figS3():
     ax2.set_ylim([-0.2, 1.01])
     ax3.set_ylim([0., 1.01])
     plt.subplots_adjust(left=0.07, right=0.95, wspace=0.26)    
-    plt.savefig(DIR_FIG+'figS3_revised.png', dpi=1000)
+    plt.savefig(DIR_FIG+'figS3_eu.png', dpi=1000)
     return 
 
 def figS4(): 
+    """
+    """
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    fig, axes = plt.subplots(figsize=(8.5, 11), nrows=8, ncols=2) 
+    axes = np.hstack(axes)
+    i = 0
+    for city in focuscities['City'][:17]:
+        if city=='London C40':
+            pass   
+        else:
+            ax = axes[i]
+            # Pluck of observations and GEOS-CF for city
+            bcmc = bcm.loc[bcm['City']==city].set_index('Date')
+            rawc = raw.loc[raw['City']==city].set_index('Date')
+            # Print performance metrics for paper
+            idx = np.isfinite(rawc['NO2'][:'2019-12-31'].values) & \
+                np.isfinite(bcmc['observed'][:'2019-12-31'].values)
+            # print('r for %s (GEOS-CF, observed), 2019'%city)
+            # print(np.corrcoef(rawc['NO2'][:'2019-12-31'].values[idx],
+            #     bcmc['observed'][:'2019-12-31'].values[idx])[0,1])
+            # print('MFB for %s (GEOS-CF, observed), 2019'%city)
+            # print((2*(np.nansum(rawc['NO2'][:'2019-12-31'].values-
+            #     bcmc['observed'][:'2019-12-31'].values)/np.nansum(
+            #     rawc['NO2'][:'2019-12-31'].values+
+            #     bcmc['observed'][:'2019-12-31'].values))))
+            # print('r for %s (GEOS-CF, BAU), 2019' %city)
+            # print(np.corrcoef(bcmc['predicted'][:'2019-12-31'].values[idx],
+            #     bcmc['observed'][:'2019-12-31'].values[idx])[0,1])
+            # print('MFB for %s (GEOS-CF, BAU), 2019'%city)
+            # print((2*(np.nansum(bcmc['predicted'][:'2019-12-31'].values-
+            #     bcmc['observed'][:'2019-12-31'].values)/np.nansum(
+            #     bcmc['predicted'][:'2019-12-31'].values+
+            #     bcmc['observed'][:'2019-12-31'].values))))
+            bcmc = bcmc.resample('1D').mean().rolling(window=7,
+                min_periods=1).mean()
+            rawc = rawc.resample('1D').mean().rolling(
+                  window=7,min_periods=1).mean()
+            ax.plot(rawc['NO2'], ls='--', color='darkgrey', label='GEOS-CF')
+            ax.plot(bcmc['predicted'], '--k', label='Business-as-usual')
+            ax.plot(bcmc['observed'], '-k', label='Observed')
+            # Fill blue for negative difference between timeseries (generally in 
+            # spring 2020)
+            y1positive=(bcmc['observed']-bcmc['predicted'])>0
+            y1negative=(bcmc['observed']-bcmc['predicted'])<=0
+            ax.fill_between(bcmc.index, bcmc['predicted'], 
+                bcmc['observed'], where=y1negative, color=agnavy, 
+                interpolate=True)
+            # Determine the maximum of the observed, predicted, and BAU 
+            # concentrations
+            maxlim = np.nanmax([rawc['NO2'], bcmc['predicted'],bcmc['observed']])
+            maxlim = int(math.ceil(maxlim/5))*5
+            # Draw shaded gradient region for lockdown 
+            ldc = focuscities.loc[focuscities['City']==city]
+            ldstart = pd.to_datetime(ldc['start'].values[0])
+            ldend = pd.to_datetime(ldc['end'].values[0])
+            x = pd.date_range(ldstart,ldend)
+            y = range(maxlim+2)
+            z = [[z] * len(x) for z in range(len(y))]
+            num_bars = 100 # More bars = smoother gradient
+            cmap = plt.get_cmap('Reds')
+            new_cmap = truncate_colormap(cmap, 0.0, 0.35)
+            ax.contourf(x, y, z, num_bars, cmap=new_cmap, zorder=0)
+            # Aesthetics
+            # Hide the right and top spines
+            for side in ['right', 'top']:
+                ax.spines[side].set_visible(False)
+            if ' C40' in city:
+                city = city[:-4]
+                ax.set_title(city, loc='left')
+            else:
+                ax.set_title(city, loc='left')    
+            if (i % 2) == 0:
+                ax.set_ylabel('NO$_{2}$ [ppbv]')
+            ax.set_xlim(['2019-01-01','2020-06-30'])
+            ax.set_xticks(['2019-01-01', '2019-02-01', '2019-03-01', '2019-04-01',
+                '2019-05-01', '2019-06-01', '2019-07-01', '2019-08-01', 
+                '2019-09-01', '2019-10-01', '2019-11-01', '2019-12-01', 
+                '2020-01-01', '2020-02-01', '2020-03-01', '2020-04-01', 
+                '2020-05-01', '2020-06-01']) 
+            ax.set_xticklabels([])
+            ax.set_ylim([0, maxlim])
+            ax.yaxis.set_major_locator(plt.MaxNLocator(4))
+            if (i==14) or (i==15): 
+                ax.set_xticklabels(['Jan\n2019', '', 'Mar', '', 'May', '', 
+                    'Jul', '', 'Sep', '', 'Nov', '', 'Jan\n2020', '', 
+                    'Mar', '', 'May', ''], fontsize=9)
+            # Legend
+            if i==15:
+                ax.legend(frameon=False, ncol=3, loc=3, fontsize=14, 
+                    bbox_to_anchor=(-1.2,-0.95))
+            i=i+1
+    plt.subplots_adjust(hspace=0.4, bottom=0.1, top=0.97)
+    plt.savefig(DIR_FIG+'figS4a_eu.png', dpi=1000)
+    plt.show()
+    # Rest of cities
+    fig, axes = plt.subplots(figsize=(8.5, 11), nrows=8, ncols=2) 
+    axes = np.hstack(axes)
+    for i, city in enumerate(focuscities['City'][17:]):
+        ax = axes[i]
+        bcmc = bcm.loc[bcm['City']==city].set_index('Date')
+        rawc = raw.loc[raw['City']==city].set_index('Date')
+        idx = np.isfinite(rawc['NO2'][:'2019-12-31'].values) & \
+            np.isfinite(bcmc['observed'][:'2019-12-31'].values)
+        # print('r for %s (GEOS-CF, observed), 2019'%city)
+        # print(np.corrcoef(rawc['NO2'][:'2019-12-31'].values[idx],
+        #     bcmc['observed'][:'2019-12-31'].values[idx])[0,1])
+        # print('MFB for %s (GEOS-CF, observed), 2019'%city)
+        # print((2*(np.nansum(rawc['NO2'][:'2019-12-31'].values-
+        #     bcmc['observed'][:'2019-12-31'].values)/np.nansum(
+        #     rawc['NO2'][:'2019-12-31'].values+
+        #     bcmc['observed'][:'2019-12-31'].values))))
+        # print('r for %s (GEOS-CF, BAU), 2019' %city)
+        # print(np.corrcoef(bcmc['predicted'][:'2019-12-31'].values[idx],
+        #     bcmc['observed'][:'2019-12-31'].values[idx])[0,1])
+        # print('MFB for %s (GEOS-CF, BAU), 2019'%city)
+        # print((2*(np.nansum(bcmc['predicted'][:'2019-12-31'].values-
+        #     bcmc['observed'][:'2019-12-31'].values)/np.nansum(
+        #     bcmc['predicted'][:'2019-12-31'].values+
+        #     bcmc['observed'][:'2019-12-31'].values))))
+        bcmc = bcmc.resample('1D').mean().rolling(window=7,
+            min_periods=1).mean()
+        rawc = rawc.resample('1D').mean().rolling(
+              window=7,min_periods=1).mean()
+        ax.plot(rawc['NO2'], ls='--', color='darkgrey', label='GEOS-CF')
+        ax.plot(bcmc['predicted'], '--k', label='Business-as-usual')
+        ax.plot(bcmc['observed'], '-k', label='Observed')
+        y1positive=(bcmc['observed']-bcmc['predicted'])>0
+        y1negative=(bcmc['observed']-bcmc['predicted'])<=0
+        ax.fill_between(bcmc.index, bcmc['predicted'], 
+            bcmc['observed'], where=y1negative, color=agnavy, 
+            interpolate=True)
+        maxlim = np.nanmax([rawc['NO2'], bcmc['predicted'],bcmc['observed']])
+        maxlim = int(math.ceil(maxlim/5))*5
+        ldc = focuscities.loc[focuscities['City']==city]
+        ldstart = pd.to_datetime(ldc['start'].values[0])
+        ldend = pd.to_datetime(ldc['end'].values[0])
+        x = pd.date_range(ldstart,ldend)
+        y = range(maxlim+2)
+        z = [[z] * len(x) for z in range(len(y))]
+        num_bars = 100 # More bars = smoother gradient
+        cmap = plt.get_cmap('Reds')
+        new_cmap = truncate_colormap(cmap, 0.0, 0.35)
+        ax.contourf(x, y, z, num_bars, cmap=new_cmap, zorder=0)
+        for side in ['right', 'top']:
+            ax.spines[side].set_visible(False)
+        if ' C40' in city:
+            city = city[:-4]
+            ax.set_title(city, loc='left')
+        else:
+            ax.set_title(city, loc='left')    
+        if (i % 2) == 0:
+            ax.set_ylabel('NO$_{2}$ [ppbv]')
+        ax.set_xlim(['2019-01-01','2020-06-30'])
+        ax.set_xticks(['2019-01-01', '2019-02-01', '2019-03-01', '2019-04-01',
+            '2019-05-01', '2019-06-01', '2019-07-01', '2019-08-01', 
+            '2019-09-01', '2019-10-01', '2019-11-01', '2019-12-01', 
+            '2020-01-01', '2020-02-01', '2020-03-01', '2020-04-01', 
+            '2020-05-01', '2020-06-01']) 
+        ax.set_xticklabels([])
+        ax.set_ylim([0, maxlim])
+        ax.yaxis.set_major_locator(plt.MaxNLocator(4))
+        if (i==7) or (i==8): 
+            ax.set_xticklabels(['Jan\n2019', '', 'Mar', '', 'May', '', 
+                'Jul', '', 'Sep', '', 'Nov', '', 'Jan\n2020', '', 
+                'Mar', '', 'May', ''], fontsize=9)
+        # Legend
+        if i==8:
+            ax.legend(frameon=False, ncol=1, loc=3, fontsize=14, 
+                bbox_to_anchor=(1.25,-0.15))
+    for i in np.arange(5,16,1):
+        axes[i].axis('off')
+    plt.subplots_adjust(hspace=0.4, bottom=0.1, top=0.97)
+    plt.savefig(DIR_FIG+'figS4b_eu.png', dpi=1000)
+    plt.show()
+    return 
+
+def figS5(): 
     from dateutil.relativedelta import relativedelta
     import scipy.odr
     dno2, no2, diesel, cities = [], [], [], []
@@ -1188,9 +1304,10 @@ def figS4():
     beta = output.beta
     print(beta)
     ax1.plot(np.linspace(-70, 0, 100), ((slope*np.linspace(-70, 0, 100))+intercept),
-        color='darkgrey', ls='--', lw=1, zorder=0, label='Linear (y=ax+b)\na=-0.91, b=-6.92')    
+        color='black', ls='dashed', lw=1, zorder=0, 
+        label='Linear fit (y=ax+b)\na=0.92, b=-6.30')    
     txtstr = 'r = %.2f\np-value = %.2f'%(r_value, p_value)
-    ax1.text(-68, -14, txtstr, color='darkgrey', ha='left')
+    ax1.text(-67, -8, txtstr, color='darkgrey', ha='left')
     ax1.set_xlim([-70, 0])
     ax1.set_ylim([-70, 0])
     ax1.set_xticks(np.arange(-70,10,10))
@@ -1201,189 +1318,10 @@ def figS4():
     ax1.set_ylabel('$\mathregular{\Delta}$ NO$_{\mathregular{2}}$ [%]\n'+
         '(traffic characterized by day of week)', loc='bottom')
     plt.subplots_adjust(bottom=0.2, left=0.2)
-    plt.savefig(DIR_FIG+'figS4_revised.png', dpi=1000)
+    plt.savefig(DIR_FIG+'figS5_eu.png', dpi=1000)
     return 
 
-def figS5(): 
-    """
-    """
-    import numpy as np
-    import pandas as pd
-    import matplotlib.pyplot as plt
-    fig, axes = plt.subplots(figsize=(8.5, 11), nrows=8, ncols=2) 
-    axes = np.hstack(axes)
-    i = 0
-    for city in focuscities['City'][:17]:
-        if city=='London C40':
-            pass   
-        else:
-            ax = axes[i]
-            # Pluck of observations and GEOS-CF for city
-            bcmc = bcm.loc[bcm['City']==city].set_index('Date')
-            rawc = raw.loc[raw['City']==city].set_index('Date')
-            # Print performance metrics for paper
-            idx = np.isfinite(rawc['NO2'][:'2019-12-31'].values) & \
-                np.isfinite(bcmc['observed'][:'2019-12-31'].values)
-            # print('r for %s (GEOS-CF, observed), 2019'%city)
-            # print(np.corrcoef(rawc['NO2'][:'2019-12-31'].values[idx],
-            #     bcmc['observed'][:'2019-12-31'].values[idx])[0,1])
-            # print('MFB for %s (GEOS-CF, observed), 2019'%city)
-            # print((2*(np.nansum(rawc['NO2'][:'2019-12-31'].values-
-            #     bcmc['observed'][:'2019-12-31'].values)/np.nansum(
-            #     rawc['NO2'][:'2019-12-31'].values+
-            #     bcmc['observed'][:'2019-12-31'].values))))
-            # print('r for %s (GEOS-CF, BAU), 2019' %city)
-            # print(np.corrcoef(bcmc['predicted'][:'2019-12-31'].values[idx],
-            #     bcmc['observed'][:'2019-12-31'].values[idx])[0,1])
-            # print('MFB for %s (GEOS-CF, BAU), 2019'%city)
-            # print((2*(np.nansum(bcmc['predicted'][:'2019-12-31'].values-
-            #     bcmc['observed'][:'2019-12-31'].values)/np.nansum(
-            #     bcmc['predicted'][:'2019-12-31'].values+
-            #     bcmc['observed'][:'2019-12-31'].values))))
-            bcmc = bcmc.resample('1D').mean().rolling(window=7,
-                min_periods=1).mean()
-            rawc = rawc.resample('1D').mean().rolling(
-                  window=7,min_periods=1).mean()
-            ax.plot(rawc['NO2'], ls='--', color='darkgrey', label='GEOS-CF')
-            ax.plot(bcmc['predicted'], '--k', label='Business-as-usual')
-            ax.plot(bcmc['observed'], '-k', label='Observed')
-            # Fill blue for negative difference between timeseries (generally in 
-            # spring 2020)
-            y1positive=(bcmc['observed']-bcmc['predicted'])>0
-            y1negative=(bcmc['observed']-bcmc['predicted'])<=0
-            ax.fill_between(bcmc.index, bcmc['predicted'], 
-                bcmc['observed'], where=y1negative, color=agnavy, 
-                interpolate=True)
-            # Determine the maximum of the observed, predicted, and BAU 
-            # concentrations
-            maxlim = np.max([rawc['NO2'], bcmc['predicted'],bcmc['observed']])
-            maxlim = int(math.ceil(maxlim/5))*5
-            # Draw shaded gradient region for lockdown 
-            ldc = focuscities.loc[focuscities['City']==city]
-            ldstart = pd.to_datetime(ldc['start'].values[0])
-            ldend = pd.to_datetime(ldc['end'].values[0])
-            x = pd.date_range(ldstart,ldend)
-            y = range(maxlim+2)
-            z = [[z] * len(x) for z in range(len(y))]
-            num_bars = 100 # More bars = smoother gradient
-            cmap = plt.get_cmap('Reds')
-            new_cmap = truncate_colormap(cmap, 0.0, 0.35)
-            ax.contourf(x, y, z, num_bars, cmap=new_cmap, zorder=0)
-            # Aesthetics
-            # Hide the right and top spines
-            for side in ['right', 'top']:
-                ax.spines[side].set_visible(False)
-            if ' C40' in city:
-                city = city[:-4]
-                ax.set_title(city, loc='left')
-            else:
-                ax.set_title(city, loc='left')    
-            if (i % 2) == 0:
-                ax.set_ylabel('NO$_{2}$ [ppbv]')
-            ax.set_xlim(['2019-01-01','2020-06-30'])
-            ax.set_xticks(['2019-01-01', '2019-02-01', '2019-03-01', '2019-04-01',
-                '2019-05-01', '2019-06-01', '2019-07-01', '2019-08-01', 
-                '2019-09-01', '2019-10-01', '2019-11-01', '2019-12-01', 
-                '2020-01-01', '2020-02-01', '2020-03-01', '2020-04-01', 
-                '2020-05-01', '2020-06-01']) 
-            ax.set_xticklabels([])
-            ax.set_ylim([0, maxlim])
-            ax.yaxis.set_major_locator(plt.MaxNLocator(4))
-            if (i==14) or (i==15): 
-                ax.set_xticklabels(['Jan\n2019', '', 'Mar', '', 'May', '', 
-                    'Jul', '', 'Sep', '', 'Nov', '', 'Jan\n2020', '', 
-                    'Mar', '', 'May', ''], fontsize=9)
-            # Legend
-            if i==15:
-                ax.legend(frameon=False, ncol=3, loc=3, fontsize=14, 
-                    bbox_to_anchor=(-1.2,-0.95))
-            i=i+1
-    plt.subplots_adjust(hspace=0.4, bottom=0.1, top=0.97)
-    plt.savefig(DIR_FIG+'figS5a_revised.png', dpi=1000)
-    plt.show()
-    # Rest of cities
-    fig, axes = plt.subplots(figsize=(8.5, 11), nrows=8, ncols=2) 
-    axes = np.hstack(axes)
-    for i, city in enumerate(focuscities['City'][17:]):
-        ax = axes[i]
-        bcmc = bcm.loc[bcm['City']==city].set_index('Date')
-        rawc = raw.loc[raw['City']==city].set_index('Date')
-        idx = np.isfinite(rawc['NO2'][:'2019-12-31'].values) & \
-            np.isfinite(bcmc['observed'][:'2019-12-31'].values)
-        # print('r for %s (GEOS-CF, observed), 2019'%city)
-        # print(np.corrcoef(rawc['NO2'][:'2019-12-31'].values[idx],
-        #     bcmc['observed'][:'2019-12-31'].values[idx])[0,1])
-        # print('MFB for %s (GEOS-CF, observed), 2019'%city)
-        # print((2*(np.nansum(rawc['NO2'][:'2019-12-31'].values-
-        #     bcmc['observed'][:'2019-12-31'].values)/np.nansum(
-        #     rawc['NO2'][:'2019-12-31'].values+
-        #     bcmc['observed'][:'2019-12-31'].values))))
-        # print('r for %s (GEOS-CF, BAU), 2019' %city)
-        # print(np.corrcoef(bcmc['predicted'][:'2019-12-31'].values[idx],
-        #     bcmc['observed'][:'2019-12-31'].values[idx])[0,1])
-        # print('MFB for %s (GEOS-CF, BAU), 2019'%city)
-        # print((2*(np.nansum(bcmc['predicted'][:'2019-12-31'].values-
-        #     bcmc['observed'][:'2019-12-31'].values)/np.nansum(
-        #     bcmc['predicted'][:'2019-12-31'].values+
-        #     bcmc['observed'][:'2019-12-31'].values))))
-        bcmc = bcmc.resample('1D').mean().rolling(window=7,
-            min_periods=1).mean()
-        rawc = rawc.resample('1D').mean().rolling(
-              window=7,min_periods=1).mean()
-        ax.plot(rawc['NO2'], ls='--', color='darkgrey', label='GEOS-CF')
-        ax.plot(bcmc['predicted'], '--k', label='Business-as-usual')
-        ax.plot(bcmc['observed'], '-k', label='Observed')
-        y1positive=(bcmc['observed']-bcmc['predicted'])>0
-        y1negative=(bcmc['observed']-bcmc['predicted'])<=0
-        ax.fill_between(bcmc.index, bcmc['predicted'], 
-            bcmc['observed'], where=y1negative, color=agnavy, 
-            interpolate=True)
-        maxlim = np.nanmax([rawc['NO2'], bcmc['predicted'],bcmc['observed']])
-        maxlim = int(math.ceil(maxlim/5))*5
-        ldc = focuscities.loc[focuscities['City']==city]
-        ldstart = pd.to_datetime(ldc['start'].values[0])
-        ldend = pd.to_datetime(ldc['end'].values[0])
-        x = pd.date_range(ldstart,ldend)
-        y = range(maxlim+2)
-        z = [[z] * len(x) for z in range(len(y))]
-        num_bars = 100 # More bars = smoother gradient
-        cmap = plt.get_cmap('Reds')
-        new_cmap = truncate_colormap(cmap, 0.0, 0.35)
-        ax.contourf(x, y, z, num_bars, cmap=new_cmap, zorder=0)
-        for side in ['right', 'top']:
-            ax.spines[side].set_visible(False)
-        if ' C40' in city:
-            city = city[:-4]
-            ax.set_title(city, loc='left')
-        else:
-            ax.set_title(city, loc='left')    
-        if (i % 2) == 0:
-            ax.set_ylabel('NO$_{2}$ [ppbv]')
-        ax.set_xlim(['2019-01-01','2020-06-30'])
-        ax.set_xticks(['2019-01-01', '2019-02-01', '2019-03-01', '2019-04-01',
-            '2019-05-01', '2019-06-01', '2019-07-01', '2019-08-01', 
-            '2019-09-01', '2019-10-01', '2019-11-01', '2019-12-01', 
-            '2020-01-01', '2020-02-01', '2020-03-01', '2020-04-01', 
-            '2020-05-01', '2020-06-01']) 
-        ax.set_xticklabels([])
-        ax.set_ylim([0, maxlim])
-        ax.yaxis.set_major_locator(plt.MaxNLocator(4))
-        if (i==7) or (i==8): 
-            ax.set_xticklabels(['Jan\n2019', '', 'Mar', '', 'May', '', 
-                'Jul', '', 'Sep', '', 'Nov', '', 'Jan\n2020', '', 
-                'Mar', '', 'May', ''], fontsize=9)
-        # Legend
-        if i==8:
-            ax.legend(frameon=False, ncol=1, loc=3, fontsize=14, 
-                bbox_to_anchor=(1.25,-0.15))
-    for i in np.arange(9,16,1):
-        axes[i].axis('off')
-    plt.subplots_adjust(hspace=0.4, bottom=0.1, top=0.97)
-    plt.savefig(DIR_FIG+'figS5b_revised.png', dpi=1000)
-    plt.show()
-    return 
-
-def figS6():
+def figS6(obs):
     """
     """    
     from sklearn.metrics import mean_squared_error
@@ -1397,11 +1335,105 @@ def figS6():
     from mpl_toolkits.axes_grid1.inset_locator import inset_axes
     import scipy.odr    
     from scipy import stats
+    
+    # Add additional C40 cities and calculate city-wide averages
+    obs_los = readc40aq.read_losangeles('NO2', '2018-01-01', '2020-12-31')
+    coordstemp = obs_los.groupby(['Longitude','Latitude']).size().reset_index()
+    coordstemp['City'] = 'Los Angeles C40'
+    coordstemp.rename({0:'Count'}, axis=1, inplace=True)
+    stationcoords.append(coordstemp)
+    obs_los = obs_los.groupby(by=['Date']).agg({
+        'Concentration':'mean', 'Latitude':'mean',
+        'Longitude':'mean', 'City':'first'}).reset_index()
+    obs_mex = readc40aq.read_mexicocity('NO2', '2018-01-01', '2020-12-31')
+    coordstemp = obs_mex.groupby(['Longitude','Latitude']).size().reset_index()
+    coordstemp['City'] = 'Mexico City C40'
+    coordstemp.rename({0:'Count'}, axis=1, inplace=True)
+    stationcoords.append(coordstemp)
+    obs_mex = obs_mex.groupby(by=['Date']).agg({
+        'Concentration':'mean', 'Latitude':'mean',
+        'Longitude':'mean', 'City':'first'}).reset_index()
+    obs_san = readc40aq.read_santiago('NO2', '2018-01-01', '2020-12-31')
+    coordstemp = obs_san.groupby(['Longitude','Latitude']).size().reset_index()
+    coordstemp['City'] = 'Santiago C40'
+    coordstemp.rename({0:'Count'}, axis=1, inplace=True)
+    stationcoords.append(coordstemp)
+    obs_san = obs_san.groupby(by=['Date']).agg({
+        'Concentration':'mean', 'Latitude':'mean',
+        'Longitude':'mean', 'City':'first'}).reset_index()
+    obs_ber = readc40aq.read_berlin('NO2', '2019-01-01', '2020-12-31')
+    coordstemp = obs_ber.groupby(['Longitude','Latitude']).size().reset_index()
+    coordstemp['City'] = 'Berlin C40'
+    coordstemp.rename({0:'Count'}, axis=1, inplace=True)
+    stationcoords.append(coordstemp)
+    obs_ber = obs_ber.groupby(by=['Date']).agg({
+        'Concentration':'mean', 'Latitude':'mean',
+        'Longitude':'mean', 'City':'first'}).reset_index()
+    obs_auc = readc40aq.read_auckland('NO2', '2019-01-01', '2020-12-31')
+    coordstemp = obs_auc.groupby(['Longitude','Latitude']).size().reset_index()
+    coordstemp['City'] = 'Auckland C40'
+    coordstemp.rename({0:'Count'}, axis=1, inplace=True)
+    stationcoords.append(coordstemp)
+    obs_auc = obs_auc.groupby(by=['Date']).agg({
+        'Concentration':'mean', 'Latitude':'mean',
+        'Longitude':'mean', 'City':'first'}).reset_index()
+    # Combine observations
+    obs_withc40 = obs.copy(deep=True)
+    obs_withc40 = obs_withc40.append(obs_los, ignore_index=False)
+    obs_withc40 = obs_withc40.append(obs_mex, ignore_index=False)
+    obs_withc40 = obs_withc40.append(obs_san, ignore_index=False)
+    obs_withc40 = obs_withc40.append(obs_auc, ignore_index=False)
+    focuscities_withc40 = build_focuscities(False)
+    # Recalculate bias-corrected model 
+    bcm_withc40 = pd.DataFrame()
+    raw_withc40 = pd.DataFrame()
+    # # Loop through cities and build bias-corrected model
+    for index, row in focuscities_withc40.iterrows():
+        city = row['City']    
+        print(city)    
+        # Select city in model/observational dataset
+        gcf_city = model.loc[model['city']==city]
+        obs_city = obs_withc40.loc[obs_withc40['City']==city].copy(deep=True)
+        # There are some cities (e.g., Brussels) with observations equal to 0 ppb
+        # that appear to just be missing data. Change these to NaN!
+        obs_city.loc[obs_city['Concentration']==0,'Concentration']= np.nan
+        # QA/QC: Require that year 2019 has at least 65% of observations for 
+        # a given city; remove observations +/- 3 standard deviations 
+        std = np.nanstd(obs_city['Concentration'])
+        mean = np.nanmean(obs_city['Concentration'])
+        obs_city.loc[obs_city['Concentration']>mean+(3*std), 'Concentration'] = np.nan
+        qaqc = obs_city.loc[(obs_city['Date']>='2019-01-01') & 
+            (obs_city['Date']<='2019-12-31')]
+        if qaqc.shape[0] >= (365*0.65):
+            # Remove city column otherwise XGBoost will throw a ValueError (i.e., 
+            # DataFrame.dtypes for data must be int, float, bool or categorical.  
+            # When categorical type is supplied, DMatrix parameter 
+            # `enable_categorical` must be set to `True`.city)    
+            del gcf_city['city'], obs_city['City']
+            # Run XGBoost for site
+            merged_train, bias_train, obs_conc_train = \
+                prepare_model_obs(obs_city, gcf_city, '2019-01-01', '2019-12-31')
+            merged_full, bias_full, obs_conc_full = \
+                prepare_model_obs(obs_city, gcf_city, '2019-01-01', '2020-06-30')
+            (no2diff, shaps, features, ro, fac2o, mfbo, rt, fac2t, mfbt, rv, fac2v, 
+                mfbv) = run_xgboost(args, merged_train, bias_train, merged_full, 
+                obs_conc_full)
+            # Group data by date and average over all k-fold predictions
+            bcm_city = no2diff.groupby(['Date']).mean().reset_index()
+            # Add column corresponding to city name for each ID
+            bcm_city['City'] = city
+            bcm_withc40 = bcm_withc40.append(bcm_city, ignore_index=True)
+            # Save off raw (non bias-corrected) observations
+            raw_city = merged_full[['Date','NO2']].copy(deep=True)
+            raw_city['City'] = city
+            raw_withc40 = raw_withc40.append(raw_city, ignore_index=True)
+        else:
+            print('Skipping %s...'%city)
     dno2, no2, diesel, cities = [], [], [], []
-    for index, row in focuscities.iterrows():
+    for index, row in focuscities_withc40.iterrows():
         city = row['City']
         print(city)
-        bcm_city = bcm.loc[bcm['City']==city]
+        bcm_city = bcm_withc40.loc[bcm_withc40['City']==city]
         bcm_city.set_index('Date', inplace=True)
         before = np.nanmean(bcm_city.loc[(
             pd.to_datetime('2020-03-15')-relativedelta(years=1)):
@@ -1411,8 +1443,8 @@ def figS6():
         # Save output
         dno2.append(pchange)
         no2.append(bcm_city['observed']['2019-01-01':'2019-12-31'].mean())
-        diesel.append(focuscities.loc[focuscities['City']==city]['Diesel share'].values[0])
-        cities.append(focuscities.loc[focuscities['City']==city]['City'].values[0])
+        diesel.append(focuscities_withc40.loc[focuscities_withc40['City']==city]['Diesel share'].values[0])
+        cities.append(focuscities_withc40.loc[focuscities_withc40['City']==city]['City'].values[0])
     diesel = np.array(diesel)
     cities = np.array(cities)
     no2 = np.array(no2)
@@ -1431,30 +1463,18 @@ def figS6():
     ax1 = plt.subplot2grid((1,1),(0,0))
     mb = ax1.scatter(diesel, dno2, c=no2, s=18, cmap=cmap, norm=norm, 
         clip_on=False)
-    # Cities exceeding WHO guidelines
-    ax1.scatter(diesel[np.where(no2>40/1.88)], dno2[np.where(no2>40/1.88)], 
-        s=19, ec='r', fc='None', norm=norm, clip_on=False)
     ax1.set_xlabel(r'Diesel-powered passenger vehicle share [%]')
     ax1.set_ylabel(r'$\mathregular{\Delta}$ NO$_{\mathregular{2}}$ [%]')
     # Calculate slope with total least squares (ODR)
     idx = np.isfinite(diesel) & np.isfinite(dno2)
-    Model = scipy.odr.Model(fit_func)
-    odr = scipy.odr.RealData(diesel[idx], dno2[idx])
-    odr = scipy.odr.ODR(odr, Model,[np.polyfit(diesel[idx], dno2[idx], 1)[1],
-        np.polyfit(diesel[idx], dno2[idx], 1)[0]], maxit=10000)
     slope, intercept, r_value, p_value, std_err = stats.linregress(
         diesel[idx], dno2[idx])
-    output = odr.run() 
-    beta = output.beta
-    ax1.plot(np.sort(diesel), fit_func(beta, np.sort(diesel)), 'darkgrey', 
-        ls='-', lw=1, zorder=0, label='Linear (y=ax+b)\na=-0.72, b=2.15')  
-    # Exponential fit
-    popt, pcov = curve_fit(func, diesel, dno2, p0=(-15, 0, 1))
-    xx = np.linspace(np.nanmin(diesel), np.nanmax(diesel), 1000)
-    yy = func(xx, *popt)
-    ax1.plot(xx, yy, lw=1., ls='-.', color='darkgrey', zorder=0, label=
-        'Exponential (y=a$\mathregular{e}^{\mathregular{-bx}}$+c)\n'+
-        'a=-18.03, b=-0.01, c=7.37')
+    lincoeff = np.poly1d(np.polyfit(diesel[idx], dno2[idx], 1))
+    print('Equation coefficients should match the following:')
+    print(lincoeff)
+    ax1.plot(np.unique(diesel[idx]), np.poly1d(np.polyfit(diesel[idx], 
+        dno2[idx], 1))(np.unique(diesel[idx])), 'black', ls='dashed', lw=1, 
+        zorder=0, label='Linear fit (y=ax+b)\na=-0.40, b=-8.91')
     ax1.legend(frameon=False, loc=9, bbox_to_anchor=(0.5, 1.16), ncol=2)
     axins1 = inset_axes(ax1, width='40%', height='5%', loc='lower left', 
         bbox_to_anchor=(0.02, 0.04, 1, 1), bbox_transform=ax1.transAxes,
@@ -1467,22 +1487,20 @@ def figS6():
     ax1.set_xlim([-1,71])
     ax1.set_ylim([-65,5])
     # Calculate r, RMSE for linear vs. power fit
-    dno2_sorted = sort_list(dno2, diesel)
-    linfit = fit_func(beta, np.sort(diesel))
-    powerfit = func(np.sort(diesel), *popt)
-    print('Equation coefficients should match the following:')
-    print('Linear: ', beta)
-    print('Exponential: ', popt)
+    # dno2_sorted = sort_list(dno2, diesel)
+    # linfit = fit_func(beta, np.sort(diesel))
+    # powerfit = func(np.sort(diesel), *popt)
+    # print('Equation coefficients should match the following:')
+    # print('Linear: ', beta)
+    # print('Exponential: ', popt)
     print('Linear correlation between diesel and dNO2=', r_value)
     print('p-value=',p_value)
-    print('RMSE for linear fit...', math.sqrt(mean_squared_error(dno2_sorted, 
-        linfit)))
-    print('Correlation for linear fit...', np.corrcoef(dno2_sorted, 
-        linfit)[0,1])
-    print('RMSE for exponential fit...', math.sqrt(mean_squared_error(dno2_sorted, 
-        powerfit)))
-    print('Correlation for linear fit...', np.corrcoef(dno2_sorted, 
-        powerfit)[0,1])
+    # print('RMSE for linear fit...', math.sqrt(mean_squared_error(dno2_sorted, 
+    #     linfit)))
+    # print('Correlation for linear fit...', np.corrcoef(dno2_sorted, 
+    #     linfit)[0,1])
+    # print('RMSE for exponential fit...', math.sqrt(mean_squared_error(dno2_sorted, 
+    #     powerfit)))
     # for i, txt in enumerate(cities):
     #     if txt == 'Santiago C40':
     #         txt = 'Santiago'
@@ -1498,12 +1516,12 @@ def figS6():
     #         txt = 'London'
     #     elif txt == 'Auckland C40':
     #         txt = 'Auckland'        
-        # ax1.annotate(txt, (diesel[i]+1, dno2[i]+1), fontsize=9)
-    # plt.savefig(DIR_FIG+'figS5_citynames_revised.png', dpi=1000)    
-    plt.savefig(DIR_FIG+'figS6_revised.png', dpi=1000)
+    #     ax1.annotate(txt, (diesel[i]+1, dno2[i]+1), fontsize=9)
+    # plt.savefig(DIR_FIG+'figS6_citynames_eu.png', dpi=1000)    
+    plt.savefig(DIR_FIG+'figS6_eu', dpi=1000)
     return
 
-def figS7(focuscities):
+def figS7(obs):
     """
     """
     from sklearn.metrics import mean_squared_error
@@ -1517,16 +1535,112 @@ def figS7(focuscities):
     from mpl_toolkits.axes_grid1.inset_locator import inset_axes
     import scipy.odr    
     from scipy import stats
+    
+    # Add additional C40 cities and calculate city-wide averages
+    obs_los = readc40aq.read_losangeles('NO2', '2018-01-01', '2020-12-31')
+    coordstemp = obs_los.groupby(['Longitude','Latitude']).size().reset_index()
+    coordstemp['City'] = 'Los Angeles C40'
+    coordstemp.rename({0:'Count'}, axis=1, inplace=True)
+    stationcoords.append(coordstemp)
+    obs_los = obs_los.groupby(by=['Date']).agg({
+        'Concentration':'mean', 'Latitude':'mean',
+        'Longitude':'mean', 'City':'first'}).reset_index()
+    obs_mex = readc40aq.read_mexicocity('NO2', '2018-01-01', '2020-12-31')
+    coordstemp = obs_mex.groupby(['Longitude','Latitude']).size().reset_index()
+    coordstemp['City'] = 'Mexico City C40'
+    coordstemp.rename({0:'Count'}, axis=1, inplace=True)
+    stationcoords.append(coordstemp)
+    obs_mex = obs_mex.groupby(by=['Date']).agg({
+        'Concentration':'mean', 'Latitude':'mean',
+        'Longitude':'mean', 'City':'first'}).reset_index()
+    obs_san = readc40aq.read_santiago('NO2', '2018-01-01', '2020-12-31')
+    coordstemp = obs_san.groupby(['Longitude','Latitude']).size().reset_index()
+    coordstemp['City'] = 'Santiago C40'
+    coordstemp.rename({0:'Count'}, axis=1, inplace=True)
+    stationcoords.append(coordstemp)
+    obs_san = obs_san.groupby(by=['Date']).agg({
+        'Concentration':'mean', 'Latitude':'mean',
+        'Longitude':'mean', 'City':'first'}).reset_index()
+    obs_ber = readc40aq.read_berlin('NO2', '2019-01-01', '2020-12-31')
+    coordstemp = obs_ber.groupby(['Longitude','Latitude']).size().reset_index()
+    coordstemp['City'] = 'Berlin C40'
+    coordstemp.rename({0:'Count'}, axis=1, inplace=True)
+    stationcoords.append(coordstemp)
+    obs_ber = obs_ber.groupby(by=['Date']).agg({
+        'Concentration':'mean', 'Latitude':'mean',
+        'Longitude':'mean', 'City':'first'}).reset_index()
+    obs_auc = readc40aq.read_auckland('NO2', '2019-01-01', '2020-12-31')
+    coordstemp = obs_auc.groupby(['Longitude','Latitude']).size().reset_index()
+    coordstemp['City'] = 'Auckland C40'
+    coordstemp.rename({0:'Count'}, axis=1, inplace=True)
+    stationcoords.append(coordstemp)
+    obs_auc = obs_auc.groupby(by=['Date']).agg({
+        'Concentration':'mean', 'Latitude':'mean',
+        'Longitude':'mean', 'City':'first'}).reset_index()
+    # Combine observations
+    obs_withc40 = obs.copy(deep=True)
+    obs_withc40 = obs_withc40.append(obs_los, ignore_index=False)
+    obs_withc40 = obs_withc40.append(obs_mex, ignore_index=False)
+    obs_withc40 = obs_withc40.append(obs_san, ignore_index=False)
+    obs_withc40 = obs_withc40.append(obs_auc, ignore_index=False)
+    focuscities_withc40 = build_focuscities(False)
+    # Recalculate bias-corrected model 
+    bcm_withc40 = pd.DataFrame()
+    raw_withc40 = pd.DataFrame()
+    # # Loop through cities and build bias-corrected model
+    for index, row in focuscities_withc40.iterrows():
+        city = row['City']    
+        print(city)    
+        # Select city in model/observational dataset
+        gcf_city = model.loc[model['city']==city]
+        obs_city = obs_withc40.loc[obs_withc40['City']==city].copy(deep=True)
+        # There are some cities (e.g., Brussels) with observations equal to 0 ppb
+        # that appear to just be missing data. Change these to NaN!
+        obs_city.loc[obs_city['Concentration']==0,'Concentration']= np.nan
+        # QA/QC: Require that year 2019 has at least 65% of observations for 
+        # a given city; remove observations +/- 3 standard deviations 
+        std = np.nanstd(obs_city['Concentration'])
+        mean = np.nanmean(obs_city['Concentration'])
+        obs_city.loc[obs_city['Concentration']>mean+(3*std), 'Concentration'] = np.nan
+        qaqc = obs_city.loc[(obs_city['Date']>='2019-01-01') & 
+            (obs_city['Date']<='2019-12-31')]
+        if qaqc.shape[0] >= (365*0.65):
+            # Remove city column otherwise XGBoost will throw a ValueError (i.e., 
+            # DataFrame.dtypes for data must be int, float, bool or categorical.  
+            # When categorical type is supplied, DMatrix parameter 
+            # `enable_categorical` must be set to `True`.city)    
+            del gcf_city['city'], obs_city['City']
+            # Run XGBoost for site
+            merged_train, bias_train, obs_conc_train = \
+                prepare_model_obs(obs_city, gcf_city, '2019-01-01', '2019-12-31')
+            merged_full, bias_full, obs_conc_full = \
+                prepare_model_obs(obs_city, gcf_city, '2019-01-01', '2020-06-30')
+            (no2diff, shaps, features, ro, fac2o, mfbo, rt, fac2t, mfbt, rv, fac2v, 
+                mfbv) = run_xgboost(args, merged_train, bias_train, merged_full, 
+                obs_conc_full)
+            # Group data by date and average over all k-fold predictions
+            bcm_city = no2diff.groupby(['Date']).mean().reset_index()
+            # Add column corresponding to city name for each ID
+            bcm_city['City'] = city
+            bcm_withc40 = bcm_withc40.append(bcm_city, ignore_index=True)
+            # Save off raw (non bias-corrected) observations
+            raw_city = merged_full[['Date','NO2']].copy(deep=True)
+            raw_city['City'] = city
+            raw_withc40 = raw_withc40.append(raw_city, ignore_index=True)
+        else:
+            print('Skipping %s...'%city)
     dno2, no2, diesel, cities = [], [], [], []
-    for index, row in focuscities.iterrows():
+    for index, row in focuscities_withc40.iterrows():
         city = row['City']
         print(city)
-        bcm_city = bcm.loc[bcm['City']==city]
+        bcm_city = bcm_withc40.loc[bcm_withc40['City']==city]
         bcm_city.set_index('Date', inplace=True)
         # Figure out REQUIRED lockdown dates
-        ldstart = focuscities.loc[focuscities['City']==city]['startreq'].values[0]
+        ldstart = focuscities_withc40.loc[focuscities_withc40['City']==
+            city]['startreq'].values[0]
         ldstart = pd.to_datetime(ldstart)
-        ldend = focuscities.loc[focuscities['City']==city]['endreq'].values[0]
+        ldend = focuscities_withc40.loc[focuscities_withc40['City']==city][
+            'endreq'].values[0]
         ldend = pd.to_datetime(ldend)
         if pd.isnull(ldstart)==False:
             before = np.nanmean(bcm_city.loc[ldstart-relativedelta(years=1):
@@ -1537,8 +1651,8 @@ def figS7(focuscities):
         else: 
             dno2.append(np.nan)
         no2.append(bcm_city['observed']['2019-01-01':'2019-12-31'].mean())
-        diesel.append(focuscities.loc[focuscities['City']==city]['Diesel share'].values[0])
-        cities.append(focuscities.loc[focuscities['City']==city]['City'].values[0])
+        diesel.append(focuscities_withc40.loc[focuscities_withc40['City']==city]['Diesel share'].values[0])
+        cities.append(focuscities_withc40.loc[focuscities_withc40['City']==city]['City'].values[0])
     diesel = np.array(diesel)
     cities = np.array(cities)
     no2 = np.array(no2)
@@ -1557,29 +1671,16 @@ def figS7(focuscities):
     mb = ax1.scatter(diesel, dno2, c=no2, s=18, cmap=cmap, norm=norm, 
         clip_on=False)
     # Cities exceeding WHO guidelines
-    ax1.scatter(diesel[np.where(no2>40/1.88)], dno2[np.where(no2>40/1.88)], 
-        s=19, ec='r', fc='None', norm=norm, clip_on=False)
     ax1.set_xlabel(r'Diesel-powered passenger vehicle share [%]')
     ax1.set_ylabel(r'$\mathregular{\Delta}$ NO$_{\mathregular{2}}$ [%]')
-    # Calculate slope with total least squares (ODR)
-    idx = np.isfinite(diesel) & np.isfinite(dno2)
-    Model = scipy.odr.Model(fit_func)
-    odr = scipy.odr.RealData(diesel[idx], dno2[idx])
-    odr = scipy.odr.ODR(odr, Model,[np.polyfit(diesel[idx], dno2[idx], 1)[1],
-        np.polyfit(diesel[idx], dno2[idx], 1)[0]], maxit=10000)
+    # Calculate slope with least squares regression
+    idx = np.isfinite(dno2) & np.isfinite(diesel)
+    lincoeff = np.poly1d(np.polyfit(diesel[idx], dno2[idx], 1))
+    ax1.plot(np.unique(diesel), np.poly1d(np.polyfit(diesel[idx], dno2[idx], 1)
+        )(np.unique(diesel)), 'black', ls='dashed', lw=1, zorder=0, 
+        label='Linear fit (y=ax+b)\na=-0.52, b=-8.81')    
     slope, intercept, r_value, p_value, std_err = stats.linregress(
         diesel[idx], dno2[idx])
-    output = odr.run() 
-    beta = output.beta
-    ax1.plot(np.sort(diesel), fit_func(beta, np.sort(diesel)), 'darkgrey', 
-        ls='-', lw=1, zorder=0, label='Linear (y=ax+b)\na=-0.82, b=1.22')  
-    # Exponential fit
-    popt, pcov = curve_fit(func, diesel[idx], dno2[idx], p0=(-15, 0, 1))
-    xx = np.linspace(np.nanmin(diesel), np.nanmax(diesel), 1000)
-    yy = func(xx, *popt)
-    ax1.plot(xx, yy, lw=1., ls='-.', color='darkgrey', zorder=0, label=
-        'Exponential (y=a$\mathregular{e}^{\mathregular{-bx}}$+c)\n'+
-        'a=-0.04, b=-0.11, c=-16.35')
     ax1.legend(frameon=False, loc=9, bbox_to_anchor=(0.5, 1.16), ncol=2)
     axins1 = inset_axes(ax1, width='40%', height='5%', loc='lower left', 
         bbox_to_anchor=(0.02, 0.04, 1, 1), bbox_transform=ax1.transAxes,
@@ -1594,22 +1695,12 @@ def figS7(focuscities):
     # Calculate r, RMSE for linear vs. power fit
     dno2_sorted = sort_list(dno2, diesel)
     dno2_sorted = np.array(dno2_sorted)
-    idx2 = np.isfinite(dno2_sorted)
-    linfit = fit_func(beta, np.sort(diesel)[idx2])
-    powerfit = func(np.sort(diesel)[idx2], *popt)
     print('Equation coefficients should match the following:')
-    print('Linear: ', beta)
-    print('Exponential: ', popt)
+    print('Linear: ', lincoeff)
     print('Linear correlation between diesel and dNO2=', r_value)
     print('p-value=',p_value)
-    print('RMSE for linear fit...', math.sqrt(mean_squared_error(
-        dno2_sorted[idx2], linfit)))
-    print('Correlation for linear fit...', np.corrcoef(
-        dno2_sorted[idx2], linfit)[0,1])
-    print('RMSE for exponential fit...', math.sqrt(mean_squared_error(
-        dno2_sorted[idx2], powerfit)))
-    print('Correlation for linear fit...', np.corrcoef(dno2_sorted[idx2], 
-        powerfit)[0,1])
+    # print('RMSE for linear fit...', math.sqrt(mean_squared_error(
+    #     dno2_sorted[idx2], linfit)))
     # for i, txt in enumerate(cities):
     #     if txt == 'Santiago C40':
     #         txt = 'Santiago'
@@ -1626,8 +1717,8 @@ def figS7(focuscities):
     #     elif txt == 'Auckland C40':
     #         txt = 'Auckland'
     #     ax1.annotate(txt, (diesel[i]+1, dno2[i]+1), fontsize=9)
-    # plt.savefig(DIR_FIG+'figS6_citynames_revised.png', dpi=1000)    
-    plt.savefig(DIR_FIG+'figS7_revised.png', dpi=1000)
+    # plt.savefig(DIR_FIG+'figS7_citynames_eu.png', dpi=1000)    
+    plt.savefig(DIR_FIG+'figS7_eu.png', dpi=1000)
     return
 
 def figS8(focuscities, bcm, model, mobility): 
@@ -1691,48 +1782,26 @@ def figS8(focuscities, bcm, model, mobility):
     fig = plt.figure(figsize=(6,4))
     ax1 = plt.subplot2grid((1,1),(0,0))
     ax1.scatter(dtraf, dno2, c='k', s=18, clip_on=False)
-    # Calculate slope with total least squares (ODR)
-    idx = np.isfinite(dtraf) & np.isfinite(dno2)
-    Model = scipy.odr.Model(fit_func)
-    odr = scipy.odr.RealData(dtraf[idx], dno2[idx])
-    odr = scipy.odr.ODR(odr, Model,[np.polyfit(dtraf[idx], dno2[idx], 1)[1],
-        np.polyfit(dtraf[idx], dno2[idx], 1)[0]], maxit=10000)
+    # Calculate slope linear with regression 
+    lincoeff = np.poly1d(np.polyfit(dtraf, dno2, 1))
+    ax1.plot(np.unique(dtraf), np.poly1d(np.polyfit(dtraf, dno2, 1)
+        )(np.unique(dtraf)), 'black', ls='dashed', lw=1, zorder=0, 
+        label='Linear fit (y=ax+b)\na=-0.11, b=-18.86')
     slope, intercept, r_value, p_value, std_err = stats.linregress(
-        dtraf[idx], dno2[idx])
-    output = odr.run() 
-    beta = output.beta
-    print('Equation coefficients should match the following:')
-    print(beta)
-    ax1.plot(np.linspace(np.nanmin(dtraf), np.nanmax(dtraf), 100), 
-        ((slope*np.linspace(np.nanmin(dtraf), np.nanmax(dtraf), 100))+intercept),
-        color='darkgrey', ls='--', lw=1, zorder=0, label='Linear (y=ax+b)\na=0.14, b=-16.39')  
+        dtraf, dno2)
     txtstr = 'r = %.2f\np-value = %.2f'%(r_value, p_value)
-    ax1.text(-82, -6, txtstr, color='darkgrey', ha='left')
+    ax1.text(-82, -3, txtstr, color='darkgrey', ha='left')
+    print('Equation coefficients should match the following:')
+    print(lincoeff)
+    print('Correlation coefficient is:')
+    print(r_value)
+    print('p-value is:')
+    print(p_value)
     ax1.set_xlabel(r'$\mathregular{\Delta}$ Traffic [%]')
     ax1.set_ylabel(r'$\mathregular{\Delta}$ NO$_{\mathregular{2}}$ [%]')
     ax1.legend(frameon=False, loc=9, bbox_to_anchor=(0.5, 1.16), ncol=2)
-    # ax1.text(8, -55, txtstr, color='darkgrey', ha='right')
-    # txtstr = 'r = %.2f'%r_value
-    # ax1.text(8, -59, txtstr, color='darkgrey', ha='right')
-    # txtstr = '$\mathit{\mathregular{p}}$-value = %.2f'%p_value
-    # ax1.text(8, -63, txtstr, color='darkgrey', ha='right')
-    # for i, txt in enumerate(cities):
-    #     if txt == 'Santiago C40':
-    #         txt = 'Santiago'
-    #     elif txt == 'Mexico City C40':
-    #         txt = 'Mexico City'
-    #     elif txt == 'Los Angeles C40':
-    #         txt = 'Los Angeles'
-    #     elif txt == 'Berlin C40':
-    #         txt = 'Berlin'
-    #     elif txt == 'Milan C40':
-    #         txt = 'Milan'
-    #     elif txt == 'London C40':
-    #         txt = 'London'
-    #     elif txt == 'Auckland C40':
-    #         txt = 'Auckland'        
-    #     ax1.annotate(txt, (diesel[i]+1, dno2[i]+1), fontsize=9)
-    plt.savefig(DIR_FIG+'figS8_revised.png', dpi=1000)
+    ax1.set_ylim([-65,5])
+    plt.savefig(DIR_FIG+'figS8_eu.png', dpi=1000)
     return 
 
 def figS9(focuscities, model, obs, mobility):
@@ -1841,20 +1910,19 @@ def figS9(focuscities, model, obs, mobility):
             raw_city = merged_full[['Date','NO2']].copy(deep=True)
             raw_city['City'] = city
         return bcm_city, bcm_cityism, shaps, shapsism, raw_city
-    
     startdate, enddate = '2019-01-01','2020-12-31'
     # # Fetch traffic data
     traffic_mil = readc40mobility.read_milan(startdate, enddate)
     traffic_ber = readc40mobility.read_berlin(startdate, enddate)
     traffic_ber = traffic_ber.groupby(traffic_ber.index).mean()
     traffic_mil = traffic_mil.groupby(traffic_mil.index).mean()
-    mobility_ber = mobility.loc[mobility['city']=='Berlin C40']
-    mobility_mil = mobility.loc[mobility['city']=='Milan C40']
+    mobility_ber = mobility.loc[mobility['city']=='Berlin']
+    mobility_mil = mobility.loc[mobility['city']=='Milan']
     # Calculate bias-corrected observations
     bcmber, bcmberism, shapsber, shapsberism, rawber = apple_vs_ism(model, 
-        obs, 'Berlin C40', traffic_ber)
+        obs, 'Berlin', traffic_ber)
     bcmmil, bcmmilism, shapsmil, shapsmilism, rawmil = apple_vs_ism(model, 
-        obs, 'Milan C40', traffic_ber)
+        obs, 'Milan', traffic_ber)
     # Rolling average
     bcmber = bcmber.set_index('Date')
     bcmberism = bcmberism.set_index('Date')
@@ -1882,12 +1950,12 @@ def figS9(focuscities, model, obs, mobility):
     ax2b = ax2.twinx()
     ax3 = plt.subplot2grid((2,2),(1,0))
     ax4 = plt.subplot2grid((2,2),(1,1))
-    ax1b.plot(mobility_ber['Volume'], lw=1.5, 
+    ax1b.plot(traffic_ber.index, mobility_ber['Volume'], lw=1.5, 
         ls='-', color=agnavy, zorder=8)
     ax1.plot(traffic_ber['Count'], lw=1.5, 
         ls='-', color=agorange)
-    ax2b.plot(mobility_mil['Volume'], lw=1.5, 
-        ls='-', color=agnavy, zorder=8)
+    ax2b.plot(traffic_mil['2019-01-01':'2020-06-30'].index, 
+        mobility_mil['Volume'], lw=1.5, ls='-', color=agnavy, zorder=8)
     ax2.plot(traffic_mil['Count'], lw=1.5, 
         ls='-', color=agorange)
     ax3.plot(rawber['NO2'], ls='--', color='darkgrey')
@@ -1895,9 +1963,9 @@ def figS9(focuscities, model, obs, mobility):
     ax3.plot(bcmberism['predicted'], '--', color=agorange)
     ax3.plot(bcmber['observed'], '-k')
     # Calculate percentage change in NO2 during different traffic datasets
-    ldstart = focuscities.loc[focuscities['City']=='Berlin C40']['start'].values[0]
+    ldstart = focuscities.loc[focuscities['City']=='Berlin']['start'].values[0]
     ldstart = pd.to_datetime(ldstart)
-    ldend = focuscities.loc[focuscities['City']=='Berlin C40']['end'].values[0]
+    ldend = focuscities.loc[focuscities['City']=='Berlin']['end'].values[0]
     ldend = pd.to_datetime(ldend)
     before = np.nanmean(bcmber.loc[ldstart-relativedelta(years=1):
         ldend-relativedelta(years=1)]['predicted'])
@@ -1918,9 +1986,9 @@ def figS9(focuscities, model, obs, mobility):
         label=r'Business-as-usual with $\mathit{\mathregular{in-situ}}$')
     ax4.plot(bcmmil['observed'], '-k', label='Observed')
     # Calculate percentage change in NO2 during different traffic datasets
-    ldstart = focuscities.loc[focuscities['City']=='Milan C40']['start'].values[0]
+    ldstart = focuscities.loc[focuscities['City']=='Milan']['start'].values[0]
     ldstart = pd.to_datetime(ldstart)
-    ldend = focuscities.loc[focuscities['City']=='Milan C40']['end'].values[0]
+    ldend = focuscities.loc[focuscities['City']=='Milan']['end'].values[0]
     ldend = pd.to_datetime(ldend)
     before = np.nanmean(bcmmil.loc[ldstart-relativedelta(years=1):
         ldend-relativedelta(years=1)]['predicted'])
@@ -1997,7 +2065,7 @@ def figS9(focuscities, model, obs, mobility):
     ax2.text(0.5, 1.1, 'Milan', fontsize=12, transform=ax2.transAxes, 
         ha='center')
     plt.subplots_adjust(hspace=0.3, wspace=0.5)
-    plt.savefig(DIR_FIG+'figS9_revised.png', dpi=1000)
+    plt.savefig(DIR_FIG+'figS9_eu.png', dpi=1000)
     return
 
 import datetime as dt
@@ -2009,44 +2077,34 @@ import sys
 sys.path.append('/Users/ghkerr/GW/mobility/')
 import readc40aq
 import readc40mobility
-focuscities = build_focuscities()
-# Load GEOSCF data (AQ and meteorology)
-aqc = pd.read_csv(DIR_MODEL+'aqc_tavg_1d_cities_v2openaq.csv', delimiter=',', 
-    header=0, engine='python', parse_dates=['time'], date_parser=lambda x: 
-    dt.datetime.strptime(x, '%Y-%m-%d'))
-met = pd.read_csv(DIR_MODEL+'met_tavg_1d_cities_v2openaq.csv', delimiter=',', 
-    header=0, engine='python', parse_dates=['time'], date_parser=lambda x: 
-    dt.datetime.strptime(x, '%Y-%m-%d'))    
-# Group by city and date and average 
-aqc = aqc.groupby(by=['city','time']).mean().reset_index()
-met = met.groupby(by=['city','time']).mean().reset_index()
-model = aqc.merge(met, how='left')
-# Delete Berlin and Milan (this retains the C40 version of these cities) 
-# and fix spelling of Taipei City
-model.drop(model.loc[model['city']=='Berlin'].index, inplace=True)
-model.drop(model.loc[model['city']=='Milan'].index, inplace=True)
-# model.loc[model.city=='Tapei','city'] = 'Taipei City'
-# Also drop Mumbai (note that in the model dataset, the coordinates appear
-# to be surrounding Pune, not Mumbai 
-# Try this (before averaging by city/date),
-# mum = aqc.loc[aqc.city=='Mumbai'] 
-# plt.plot(mum['longitude'], mum['latitude'], 'k*')
-# Plus, the city's data for the measuring period doesn't meet our QA/QC
-# so skip for now!
-# model.drop(model.loc[model['city']=='Mumbai'].index, inplace=True)
-# Add mobility information to observation DataFrame
-mobility = readc40mobility.read_applemobility('2019-01-01', '2020-06-30')
-mobility.reset_index(inplace=True)
-mobility = mobility.rename(columns={'Date':'time'})
-model = model.merge(mobility, on=['city', 'time'], how='right')
-model = model.rename(columns={'time':'Date'})
-model['Date'] = pd.to_datetime(model['Date'])
-# Repeat but for model with traffic volumes replaced by day-of-week integers
-mobilitydow = readc40mobility.read_applemobility('2019-01-01', '2020-06-30', 
-    dow=True)
-mobilitydow.reset_index(inplace=True)
-modeldow = model.loc[:, model.columns!='Volume'].merge(mobilitydow, 
-    on=['city', 'Date'], how='right')
+# focuscities = build_focuscities(True)
+
+# # Load GEOSCF data (AQ and meteorology)
+# aqc = pd.read_csv(DIR_MODEL+'aqc_tavg_1d_cities_v2openaq.csv', delimiter=',', 
+#     header=0, engine='python', parse_dates=['time'], date_parser=lambda x: 
+#     dt.datetime.strptime(x, '%Y-%m-%d'))
+# met = pd.read_csv(DIR_MODEL+'met_tavg_1d_cities_v2openaq.csv', delimiter=',', 
+#     header=0, engine='python', parse_dates=['time'], date_parser=lambda x: 
+#     dt.datetime.strptime(x, '%Y-%m-%d'))    
+# # Group by city and date and average 
+# aqc = aqc.groupby(by=['city','time']).mean().reset_index()
+# met = met.groupby(by=['city','time']).mean().reset_index()
+# model = aqc.merge(met, how='left')
+# # Add mobility information to observation DataFrame
+# mobility = readc40mobility.read_applemobility('2019-01-01', '2020-06-30')
+# mobility.reset_index(inplace=True)
+# mobility = mobility.rename(columns={'Date':'time'})
+# model = model.merge(mobility, on=['city', 'time'], how='right')
+# model = model.rename(columns={'time':'Date'})
+# model['Date'] = pd.to_datetime(model['Date'])
+# model.loc[model['city']=='Berlin C40', 'city'] = 'Berlin'
+# model.loc[model['city']=='Milan C40', 'city'] = 'Milan'
+# # Repeat but for model with traffic volumes replaced by day-of-week integers
+# mobilitydow = readc40mobility.read_applemobility('2019-01-01', '2020-06-30', 
+#     dow=True)
+# mobilitydow.reset_index(inplace=True)
+# modeldow = model.loc[:, model.columns!='Volume'].merge(mobilitydow, 
+#     on=['city', 'Date'], how='right')
 
 # # Save all station coordinates 
 # stationcoords = [] 
@@ -2066,90 +2124,14 @@ modeldow = model.loc[:, model.columns!='Volume'].merge(mobilitydow,
 #         stationcoords.append(coords)
 #         country = country.drop(['Unnamed: 0'], axis=1)
 #         country = country.rename(columns={'DatetimeBegin':'Date'})
-#         # # Find transportation/total NOx ratio in each city 
-#         # ratio = edgar_sectorimportance(country)
-#         # for index, row in ratio.iterrows():
-#         #     city = row['City']
-#         #     focuscities.loc[focuscities['City']==city,'Ratio'] = row['Ratio']
 #         # Calculate city average
 #         country = country.groupby(by=['City','Date']).agg({
 #             'Concentration':'mean', 'Latitude':'mean',
 #             'Longitude':'mean'}).reset_index()
-#         # Remove Berlin and Milan since these cities' observations exist
-#         # from the C40 dataset. Note, though, that the EEA dataset goes back
-#         # to 2018 whereas the C40 dataset as of 21 April 2021 only includes
-#         # 2019-2020
-#         country.drop(country.loc[country['City']=='Berlin'].index, inplace=True)
-#         country.drop(country.loc[country['City']=='Milan'].index, inplace=True)
 #         obs_eea = obs_eea.append(country, ignore_index=False)
 # # Convert from ug/m3 NO2 to ppb (1.88 ug/m3 = 1 ppb)
 # obs_eea['Concentration'] = obs_eea['Concentration']/1.88
 
-# # # # # Load observations from openAQ
-# obs_openaq = pd.DataFrame([])
-# for country in ['AU', 'BE', 'CA', 'CH', 'CN', 'CO', 'IE', 'LU',  
-#     # Remove IN on 22 April 2021
-#     'LV', 'NO', 'RS', 'SK', 'TH', 'TW']:
-#     country = pd.read_csv(DIR_AQ+'openaq/'+
-#         '%s_no2_2018-2020_timeseries.csv'%country, sep=',', 
-#         engine='python', parse_dates=['DatetimeBegin'], 
-#         date_parser=lambda x: dt.datetime.strptime(x, '%Y-%m-%d'))
-#     if country.empty != True:
-#         country = country.drop(['Unnamed: 0'], axis=1)
-#         country = country.rename(columns={'DatetimeBegin':'Date'})
-#         # # Find transportation/total NOx ratio in each city 
-#         # ratio = edgar_sectorimportance(country)
-#         # for index, row in ratio.iterrows():
-#         #     city = row['City']
-#         #     focuscities.loc[focuscities['City']==city,'Ratio'] = row['Ratio']
-#         # Calculate city average
-#         country = country.groupby(by=['Date']).agg({
-#             'Concentration':'mean', 'Latitude':'mean',
-#             'Longitude':'mean', 'City':'first'}).reset_index()
-#         obs_openaq = obs_openaq.append(country, ignore_index=False)
-# # obs_openaq.loc[obs_openaq.City=='Tapei','City'] = 'Taipei City'
-    
-# # # # # Load observations from C40 cities and calculate city-wide averages
-# obs_los = readc40aq.read_losangeles('NO2', '2018-01-01', '2020-12-31')
-# coordstemp = obs_los.groupby(['Longitude','Latitude']).size().reset_index()
-# coordstemp['City'] = 'Los Angeles C40'
-# coordstemp.rename({0:'Count'}, axis=1, inplace=True)
-# stationcoords.append(coordstemp)
-# obs_los = obs_los.groupby(by=['Date']).agg({
-#     'Concentration':'mean', 'Latitude':'mean',
-#     'Longitude':'mean', 'City':'first'}).reset_index()
-# obs_mex = readc40aq.read_mexicocity('NO2', '2018-01-01', '2020-12-31')
-# coordstemp = obs_mex.groupby(['Longitude','Latitude']).size().reset_index()
-# coordstemp['City'] = 'Mexico City C40'
-# coordstemp.rename({0:'Count'}, axis=1, inplace=True)
-# stationcoords.append(coordstemp)
-# obs_mex = obs_mex.groupby(by=['Date']).agg({
-#     'Concentration':'mean', 'Latitude':'mean',
-#     'Longitude':'mean', 'City':'first'}).reset_index()
-# obs_san = readc40aq.read_santiago('NO2', '2018-01-01', '2020-12-31')
-# coordstemp = obs_san.groupby(['Longitude','Latitude']).size().reset_index()
-# coordstemp['City'] = 'Santiago C40'
-# coordstemp.rename({0:'Count'}, axis=1, inplace=True)
-# stationcoords.append(coordstemp)
-# obs_san = obs_san.groupby(by=['Date']).agg({
-#     'Concentration':'mean', 'Latitude':'mean',
-#     'Longitude':'mean', 'City':'first'}).reset_index()
-# obs_ber = readc40aq.read_berlin('NO2', '2019-01-01', '2020-12-31')
-# coordstemp = obs_ber.groupby(['Longitude','Latitude']).size().reset_index()
-# coordstemp['City'] = 'Berlin C40'
-# coordstemp.rename({0:'Count'}, axis=1, inplace=True)
-# stationcoords.append(coordstemp)
-# obs_ber = obs_ber.groupby(by=['Date']).agg({
-#     'Concentration':'mean', 'Latitude':'mean',
-#     'Longitude':'mean', 'City':'first'}).reset_index()
-# obs_mil = readc40aq.read_milan('NO2', '2019-01-01', '2020-12-31')
-# coordstemp = obs_mil.groupby(['Longitude','Latitude']).size().reset_index()
-# coordstemp['City'] = 'Milan C40'
-# coordstemp.rename({0:'Count'}, axis=1, inplace=True)
-# stationcoords.append(coordstemp)
-# obs_mil = obs_mil.groupby(by=['Date']).agg({
-#     'Concentration':'mean', 'Latitude':'mean',
-#     'Longitude':'mean', 'City':'first'}).reset_index()
 # obs_lon = readc40aq.read_london('NO2', '2019-01-01', '2020-12-31')
 # coordstemp = obs_lon.groupby(['Longitude','Latitude']).size().reset_index()
 # coordstemp['City'] = 'London C40'
@@ -2158,26 +2140,28 @@ modeldow = model.loc[:, model.columns!='Volume'].merge(mobilitydow,
 # obs_lon = obs_lon.groupby(by=['Date']).agg({
 #     'Concentration':'mean', 'Latitude':'mean',
 #     'Longitude':'mean', 'City':'first'}).reset_index()
-# obs_auc = readc40aq.read_auckland('NO2', '2019-01-01', '2020-12-31')
-# coordstemp = obs_auc.groupby(['Longitude','Latitude']).size().reset_index()
-# coordstemp['City'] = 'Auckland C40'
+# obs_eea = obs_eea.append(obs_lon, ignore_index=False)
+# # Milan observations from EEA are more or less identical to the ones supplied
+# # by C40; however, the EEA observations have a few missing days' worth of data
+# # that make the timeseries plots look a little weird, so replace the EEA
+# # observations with C40 ones
+# obs_eea = obs_eea[~obs_eea.City.isin(['Milan'])]
+# obs_mil = readc40aq.read_milan('NO2', '2019-01-01', '2020-12-31')
+# obs_mil['City'] = 'Milan'
+# coordstemp = obs_mil.groupby(['Longitude','Latitude']).size().reset_index()
+# coordstemp['City'] = 'Milan'
 # coordstemp.rename({0:'Count'}, axis=1, inplace=True)
-# stationcoords.append(coordstemp)
-# obs_auc = obs_auc.groupby(by=['Date']).agg({
+# obs_mil = obs_mil.groupby(by=['Date']).agg({
 #     'Concentration':'mean', 'Latitude':'mean',
 #     'Longitude':'mean', 'City':'first'}).reset_index()
-
-# # # # # Combine EEA, C40, and openAQ observations
-# obs_eea = obs_eea.append(obs_los, ignore_index=False)
-# obs_eea = obs_eea.append(obs_mex, ignore_index=False)
-# obs_eea = obs_eea.append(obs_san, ignore_index=False)
-# obs_eea = obs_eea.append(obs_ber, ignore_index=False)
 # obs_eea = obs_eea.append(obs_mil, ignore_index=False)
-# obs_eea = obs_eea.append(obs_lon, ignore_index=False)
-# obs_eea = obs_eea.append(obs_auc, ignore_index=False)
-# obs = obs_eea
 # stationcoords = pd.concat(stationcoords)
-# # obs = obs_eea.append(obs_openaq)
+# # Now add delete Milan's coordinates (from EEA) to this DataFrame and then
+# # add Milan's coordinates from C40. Note that this command must be done 
+# # after concatenating the DataFrame from a list
+# stationcoords = stationcoords[~stationcoords.City.isin(['Milan'])]
+# stationcoords = stationcoords.append(coordstemp)
+# obs = obs_eea
 
 # rorig, fac2orig, mfborig = [], [], []
 # rtrain, fac2train, mfbtrain = [], [], []
@@ -2249,16 +2233,49 @@ modeldow = model.loc[:, model.columns!='Volume'].merge(mobilitydow,
 
 # fig2()
 # fig3(focuscities, bcm)  
-# fig4(focuscities, bcm, coarse=True)
+# fig4(focuscities, bcm, stationcoords, coarse=True)
 # figS1()
 # figS2()
 # figS3()
 # figS4()
 # figS5()
-# figS6()
-# figS7(focuscities)
+# figS6(obs)
+# figS7(obs)
 # figS8(focuscities, bcm, model, mobility)
 # figS9(focuscities, model, obs, mobility)
+
+
+
+# pos = [10, 30, 50]
+# posidx = 0
+# for left, right in zip([0,20,40], [20,40,80]):
+#     wherediesel = np.where((np.array(diesel)>left) & 
+#         (np.array(diesel)<=right))
+#     wherediesel_dno2 = dno2[wherediesel[0]]
+#     ax1.boxplot(wherediesel_dno2, positions=[pos[posidx]], widths=[10], 
+#         whis=[10,90], zorder=0, patch_artist=True,
+#         boxprops=dict(facecolor='lightgrey', color='lightgrey'),
+#         capprops=dict(color='None'),
+#         whiskerprops=dict(color='lightgrey', lw='3'),
+#             # flierprops=dict(color=c, markeredgecolor=c),
+#             medianprops=dict(color='w', lw='3'),
+#         showfliers=False)
+#     posidx = posidx + 1
+# ax1.set_xticklabels(['<20', '20-40', '>40'])
+# ax1.set_ylabel('$\mathregular{\Delta}$ NO$_{\mathregular{2}}$ [%]')
+# ax1.set_xlabel('Diesel share [%]')
+# Out[251]: Text(0.5, 0, 'Diesel share [%]')
+
+# fig = plt.figure()
+# ax1 = plt.subplot2grid((1,1),(0,0))
+# for left, right in zip([0,15,30,45,60], [15,30,45,60,75]):
+#     wherediesel = np.where((np.array(diesel)>left) & 
+#         (np.array(diesel)<=right))
+#     wherediesel_dno2 = dno2[wherediesel[0]]
+#     ax1.boxplot(wherediesel_dno2, positions=[left], widths=[10])
+# ax1.set_xticklabels(['<15', '15-30', '30-45', '45-60', '>60'])
+# ax1.set_ylabel('$\mathregular{\Delta}$ NO$_{\mathregular{2}}$ [%]')
+# ax1.set_xlabel('Diesel share [%]')
 
 """EMISSIONS INVENTORY COMPARISON"""
 # import matplotlib.pyplot as plt
@@ -2463,3 +2480,7 @@ modeldow = model.loc[:, model.columns!='Volume'].merge(mobilitydow,
 #         lat_edgar[lat_edgar_closest]-0.05], width=0.1, height=0.1,
 #         edgecolor='r', facecolor='None', transform=ccrs.PlateCarree()))     
 # plt.savefig('/Users/ghkerr/Desktop/inventories_compare_athens.png', dpi=600)
+
+
+import netCDF4 as nc
+no2 = nc.Dataset('Tropomi_NO2_griddedon0.01grid_2019_QA75.ncf', 'r')
