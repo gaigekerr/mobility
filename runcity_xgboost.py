@@ -504,7 +504,7 @@ def fig3(focuscities, bcm):
     ax1.plot(np.unique(diesel), np.poly1d(np.polyfit(diesel, dno2, 1)
         )(np.unique(diesel)), 'black', ls='dashed', lw=1, zorder=0, 
         label='Linear fit (y=ax+b)\na=-0.53, b=-2.21')
-    ax1.legend(frameon=False, loc=9, bbox_to_anchor=(0.5, 1.16), ncol=2)
+    ax1.legend(frameon=False, bbox_to_anchor=(0.4, 0.42))
     axins1 = inset_axes(ax1, width='40%', height='5%', loc='lower left', 
         bbox_to_anchor=(0.02, 0.04, 1, 1), bbox_transform=ax1.transAxes,
         borderpad=0)
@@ -543,10 +543,27 @@ def fig3(focuscities, bcm):
     #         txt = 'Auckland'        
     #     ax1.annotate(txt, (diesel[i]+1, dno2[i]+1), fontsize=9)
     # plt.savefig(DIR_FIG+'fig3_citynames_eu.png', dpi=1000)    
-    plt.savefig(DIR_FIG+'fig3_eu.png', dpi=1000)
+    # plt.savefig(DIR_FIG+'fig3_eu.png', dpi=1000)
     return  
 
 def fig4(focuscities, bcm, stationcoords, coarse=False):
+    """
+    
+    Parameters
+    ----------
+    focuscities : TYPE
+        DESCRIPTION.
+    bcm : TYPE
+        DESCRIPTION.
+    stationcoords : TYPE
+        DESCRIPTION.
+    coarse : TYPE, optional
+        DESCRIPTION. The default is False.
+
+    Returns
+    -------
+    None
+    """
     import matplotlib.pyplot as plt
     from dateutil.relativedelta import relativedelta
     import matplotlib as mpl
@@ -609,7 +626,12 @@ def fig4(focuscities, bcm, stationcoords, coarse=False):
     idx_edgarc, idx_emepc = [], []
     dno2, cities = [], []
     i = 0
-    for city in focuscities['City']:
+    # Reorder cities by diesel share %
+    cities_reorder = [x for _, x in sorted(zip(focuscities['Diesel share'], 
+        focuscities['City']))]
+    diesel_reorder = [x for x, _ in sorted(zip(focuscities['Diesel share'], 
+        focuscities['City']))]
+    for city, diesel in zip(cities_reorder, diesel_reorder):
         # Find coordinates in city 
         citycoords = stationcoords.loc[stationcoords['City']==city]
         # if city == 'Milan C40':
@@ -687,13 +709,9 @@ def fig4(focuscities, bcm, stationcoords, coarse=False):
         dno2.append(pchange)
         if ' C40' in city:
             city = city[:-4]
-        cities.append(city)
+        cities.append(city+'\n(%.1f%%)'%diesel)
     dno2 = np.array(dno2)
     cities = np.array(cities)
-    # # Force Athens from 0.93 to 0.80 and force Sofia from 0.88 to 0.80
-    # if coarse==False: 
-    #     fraccities_emep[0] = 0.799
-    #     fraccities_emep[-6] = 0.799
     # Create colormap
     cmap = plt.cm.Blues_r
     bounds = np.linspace(-60, 0, 7)
@@ -743,19 +761,19 @@ def fig4(focuscities, bcm, stationcoords, coarse=False):
     for ax in [ax1, ax2]:
         for side in ['top', 'bottom', 'left', 'right']:
             ax.spines[side].set_visible(False)
-        ax.set_xlim([0, 0.8])
-        ax.set_xticks([0, 0.2, 0.4, 0.6, 0.8])
-        ax.set_xticklabels(['0%','20%','40%','60%','80%'])
+        ax.set_xlim([0, 1.])
+        ax.set_xticks([0, 0.2, 0.4, 0.6, 0.8, 1.])
+        ax.set_xticklabels(['0%','20%','40%','60%','80%', '100%'])
         ax.xaxis.tick_top()
         ax.tick_params(axis=u'x', which=u'both',length=0, pad=-6)
         ax.tick_params(axis=u'y', which=u'both',length=0, pad=3) 
     # Grid lines
     ax1.set_ylim([-3, 55])
-    for vlin in [0.2, 0.4, 0.6, 0.8]:
+    for vlin in [0.2, 0.4, 0.6, 0.8 ,1.]:
         ax1.vlines(vlin, -1, 53, color='darkgrey', 
             linestyle='-', lw=0.5, zorder=0)    
     ax2.set_ylim([52, 110])
-    for vlin in [0.2, 0.4, 0.6, 0.8]:
+    for vlin in [0.2, 0.4, 0.6, 0.8, 1.]:
         ax2.vlines(vlin, 54, 108, color='darkgrey', 
             linestyle='-', lw=0.5, zorder=0)    
     plt.subplots_adjust(wspace=0.5, right=0.95, top=0.95)
@@ -811,7 +829,7 @@ def figS1():
         axes[i].add_image(request, 11)
         axes[i].set_adjustable('datalim')
     plt.subplots_adjust(left=0.03, right=0.97, top=0.97, bottom=0.03)    
-    plt.savefig(DIR_FIG+'figS1a_eu.png', dpi=1000)
+    # plt.savefig(DIR_FIG+'figS1a_eu.png', dpi=1000)
     plt.show()
     # For the rest of the focus cities
     fig, axes = plt.subplots(figsize=(8.5, 11), nrows=5, ncols=3, 
@@ -849,7 +867,7 @@ def figS1():
     for i in np.arange(7,15,1):
         axes[i].axis('off')     
     plt.subplots_adjust(left=0.03, right=0.97, top=0.97, bottom=0.03)
-    plt.savefig(DIR_FIG+'figS1b_eu.png', dpi=1000)
+    # plt.savefig(DIR_FIG+'figS1b_eu.png', dpi=1000)
     plt.show()
     return
 
@@ -1475,7 +1493,8 @@ def figS6(obs):
     ax1.plot(np.unique(diesel[idx]), np.poly1d(np.polyfit(diesel[idx], 
         dno2[idx], 1))(np.unique(diesel[idx])), 'black', ls='dashed', lw=1, 
         zorder=0, label='Linear fit (y=ax+b)\na=-0.40, b=-8.91')
-    ax1.legend(frameon=False, loc=9, bbox_to_anchor=(0.5, 1.16), ncol=2)
+    # ax1.legend(frameon=False, loc=9, bbox_to_anchor=(0.5, 1.16), ncol=2)
+    ax1.legend(frameon=False, bbox_to_anchor=(0.4, 0.42))
     axins1 = inset_axes(ax1, width='40%', height='5%', loc='lower left', 
         bbox_to_anchor=(0.02, 0.04, 1, 1), bbox_transform=ax1.transAxes,
         borderpad=0)
@@ -1501,24 +1520,24 @@ def figS6(obs):
     #     linfit)[0,1])
     # print('RMSE for exponential fit...', math.sqrt(mean_squared_error(dno2_sorted, 
     #     powerfit)))
-    # for i, txt in enumerate(cities):
-    #     if txt == 'Santiago C40':
-    #         txt = 'Santiago'
-    #     elif txt == 'Mexico City C40':
-    #         txt = 'Mexico City'
-    #     elif txt == 'Los Angeles C40':
-    #         txt = 'Los Angeles'
-    #     elif txt == 'Berlin C40':
-    #         txt = 'Berlin'
-    #     elif txt == 'Milan C40':
-    #         txt = 'Milan'
-    #     elif txt == 'London C40':
-    #         txt = 'London'
-    #     elif txt == 'Auckland C40':
-    #         txt = 'Auckland'        
-    #     ax1.annotate(txt, (diesel[i]+1, dno2[i]+1), fontsize=9)
-    # plt.savefig(DIR_FIG+'figS6_citynames_eu.png', dpi=1000)    
-    plt.savefig(DIR_FIG+'figS6_eu', dpi=1000)
+    for i, txt in enumerate(cities):
+        if txt == 'Santiago C40':
+            txt = 'Santiago'
+        elif txt == 'Mexico City C40':
+            txt = 'Mexico City'
+        elif txt == 'Los Angeles C40':
+            txt = 'Los Angeles'
+        elif txt == 'Berlin C40':
+            txt = 'Berlin'
+        elif txt == 'Milan C40':
+            txt = 'Milan'
+        elif txt == 'London C40':
+            txt = 'London'
+        elif txt == 'Auckland C40':
+            txt = 'Auckland'        
+        ax1.annotate(txt, (diesel[i]+1, dno2[i]+1), fontsize=9)
+    plt.savefig(DIR_FIG+'figS6_citynames_eu.png', dpi=1000)    
+    # plt.savefig(DIR_FIG+'figS6_eu', dpi=1000)
     return
 
 def figS7(obs):
@@ -1681,7 +1700,8 @@ def figS7(obs):
         label='Linear fit (y=ax+b)\na=-0.52, b=-8.81')    
     slope, intercept, r_value, p_value, std_err = stats.linregress(
         diesel[idx], dno2[idx])
-    ax1.legend(frameon=False, loc=9, bbox_to_anchor=(0.5, 1.16), ncol=2)
+    # ax1.legend(frameon=False, loc=9, bbox_to_anchor=(0.5, 1.16), ncol=2)
+    ax1.legend(frameon=False, bbox_to_anchor=(0.4, 0.42))
     axins1 = inset_axes(ax1, width='40%', height='5%', loc='lower left', 
         bbox_to_anchor=(0.02, 0.04, 1, 1), bbox_transform=ax1.transAxes,
         borderpad=0)
@@ -1717,8 +1737,8 @@ def figS7(obs):
     #     elif txt == 'Auckland C40':
     #         txt = 'Auckland'
     #     ax1.annotate(txt, (diesel[i]+1, dno2[i]+1), fontsize=9)
-    # plt.savefig(DIR_FIG+'figS7_citynames_eu.png', dpi=1000)    
-    plt.savefig(DIR_FIG+'figS7_eu.png', dpi=1000)
+    #  plt.savefig(DIR_FIG+'figS7_citynames_eu.png', dpi=1000)    
+    # plt.savefig(DIR_FIG+'figS7_eu.png', dpi=1000)
     return
 
 def figS8(focuscities, bcm, model, mobility): 
@@ -1799,7 +1819,8 @@ def figS8(focuscities, bcm, model, mobility):
     print(p_value)
     ax1.set_xlabel(r'$\mathregular{\Delta}$ Traffic [%]')
     ax1.set_ylabel(r'$\mathregular{\Delta}$ NO$_{\mathregular{2}}$ [%]')
-    ax1.legend(frameon=False, loc=9, bbox_to_anchor=(0.5, 1.16), ncol=2)
+    # ax1.legend(frameon=False, loc=9, bbox_to_anchor=(0.5, 1.16), ncol=2)
+    # ax1.legend(frameon=False, bbox_to_anchor=(0.4, 0.42))
     ax1.set_ylim([-65,5])
     plt.savefig(DIR_FIG+'figS8_eu.png', dpi=1000)
     return 
@@ -2077,7 +2098,7 @@ import sys
 sys.path.append('/Users/ghkerr/GW/mobility/')
 import readc40aq
 import readc40mobility
-# focuscities = build_focuscities(True)
+focuscities = build_focuscities(True)
 
 # # Load GEOSCF data (AQ and meteorology)
 # aqc = pd.read_csv(DIR_MODEL+'aqc_tavg_1d_cities_v2openaq.csv', delimiter=',', 
@@ -2480,7 +2501,3 @@ import readc40mobility
 #         lat_edgar[lat_edgar_closest]-0.05], width=0.1, height=0.1,
 #         edgecolor='r', facecolor='None', transform=ccrs.PlateCarree()))     
 # plt.savefig('/Users/ghkerr/Desktop/inventories_compare_athens.png', dpi=600)
-
-
-import netCDF4 as nc
-no2 = nc.Dataset('Tropomi_NO2_griddedon0.01grid_2019_QA75.ncf', 'r')
