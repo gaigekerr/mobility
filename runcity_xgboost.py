@@ -191,35 +191,35 @@ def build_focuscities(noC40):
     #     ['Zagreb', 'Croatia', 52.4], # ACEA 
     #     ]
     focuscities = [
-        ['Athens', 'Greece', 8.1], # ACEA 
-        ['Auckland C40', 'New Zealand', 8.3], # C40 partnership
-        ['Barcelona', 'Spain', 	58.7], # ACEA
-        ['Berlin', 'Germany', 31.7], # ACEA
-        ['Budapest', 'Hungary', 31.5], # ACEA
-        ['Copenhagen', 'Denmark', 30.9], # ACEA 
-        ['Helsinki', 'Finland', 27.9], # ACEA 
-        ['Krakow', 'Poland', 31.6], # ACEA 
-        ['London C40', 'United Kingdom', 39.0], # ACEA 
-        ['Los Angeles C40', 'United States', 0.4], # C40 partnership
-        ['Madrid', 'Spain', 58.7], # ACEA
-        ['Marseille', 'France', 58.9], # ACEA
-        ['Mexico City C40', 'Mexico', 0.2], # C40 partnership
-        ['Milan', 'Italy', 44.2], # ACEA 
-        ['Munich', 'Germany', 31.7], # ACEA
-        ['Paris', 'France', 58.9], # ACEA
-        ['Prague', 'Czechia', 35.9], # ACEA
-        ['Rome', 'Italy', 44.2], # ACEA
-        ['Rotterdam', 'Netherlands', 14.0], # ACEA
-        ['Santiago C40', 'Chile', 7.1], # C40 partnership
-        ['Sofia', 'Bulgaria',  43.1], # ICCT partnership
-        ['Stockholm', 'Sweden', 35.5], # ACEA
-        ['Vienna', 'Austria', 55.0], # ACEA
-        ['Vilnius', 'Lithuania', 69.2], # ACEA
-        ['Warsaw', 'Poland', 31.6], # ACEA
-        ['Zagreb', 'Croatia', 52.4], # ACEA 
+        ['Athens', 'Greece', 8.1, 16.0], # ACEA 
+        ['Auckland C40', 'New Zealand', 8.3, 999], # C40 partnership
+        ['Barcelona', 'Spain', 	58.7, 12.7], # ACEA
+        ['Berlin', 'Germany', 31.7, 9.6], # ACEA
+        ['Budapest', 'Hungary', 31.5, 13.5], # ACEA
+        ['Copenhagen', 'Denmark', 30.9, 8.8], # ACEA 
+        ['Helsinki', 'Finland', 27.9, 12.2], # ACEA 
+        ['Krakow', 'Poland', 31.6, 41.1], # ACEA 
+        ['London C40', 'United Kingdom', 39.0, 8.0], # ACEA 
+        ['Los Angeles C40', 'United States', 0.4, 999], # C40 partnership
+        ['Madrid', 'Spain', 58.7, 12.7], # ACEA
+        ['Marseille', 'France', 58.9, 10.2], # ACEA
+        ['Mexico City C40', 'Mexico', 0.2, 999], # C40 partnership
+        ['Milan', 'Italy', 44.2, 11.4], # ACEA 
+        ['Munich', 'Germany', 31.7, 9.6], # ACEA
+        ['Paris', 'France', 58.9, 10.2], # ACEA
+        ['Prague', 'Czechia', 35.9, 14.9], # ACEA
+        ['Rome', 'Italy', 44.2, 11.4], # ACEA
+        ['Rotterdam', 'Netherlands', 14.0, 11.0], # ACEA
+        ['Santiago C40', 'Chile', 7.1, 999], # C40 partnership
+        ['Sofia', 'Bulgaria',  43.1, 22], # ICCT partnership
+        ['Stockholm', 'Sweden', 35.5, 10.], # ACEA
+        ['Vienna', 'Austria', 55.0, 8.3], # ACEA
+        ['Vilnius', 'Lithuania', 69.2, 16.8], # ACEA
+        ['Warsaw', 'Poland', 31.6, 41.1], # ACEA
+        ['Zagreb', 'Croatia', 52.4, 14.6], # ACEA 
         ]    
     focuscities = pd.DataFrame(focuscities, columns=['City', 'Country', 
-        'Diesel share'])    
+        'Diesel share', 'Age'])    
     # Open stay-at-home data 
     sah = pd.read_csv(DIR_MOBILITY+'stay-at-home-covid.csv')
     # Meaning of column stay_home_requirements
@@ -576,12 +576,6 @@ def fig4(focuscities, bcm, stationcoords, coarse=False):
     lng_emep = emep.variables['lon'][:]
     road_emep = emep.variables['roadtransport'][-1,:]
     total_emep = emep.variables['sumallsectors'][-1,:]
-    emepc = nc.Dataset(DIR_EMISSIONS+'emep/'+
-        'NOx_2019_GRID_1990_to_2017_regriddedto0.5.nc')
-    lat_emepc = emepc.variables['lat'][:]
-    lng_emepc = emepc.variables['lon'][:]
-    road_emepc = emepc.variables['roadtransport'][-1,:]
-    total_emepc = emepc.variables['sumallsectors'][-1,:]
     # Open EDGAR (2015 gridded emissions at 0.1 deg x 0.1 deg resolution and
     # version )
     roadtransport_edgar = nc.Dataset(DIR_EMISSIONS+
@@ -593,15 +587,6 @@ def fig4(focuscities, bcm, stationcoords, coarse=False):
     lng_edgar = (lng_edgar + 180) % 360 - 180
     total_edgar = total_edgar.variables['emi_nox'][:]
     road_edgar = roadtransport_edgar.variables['emi_nox'][:]
-    road_edgarc = nc.Dataset(DIR_EMISSIONS+
-        'edgar/v50_NOx_2015_TRO_noRES.0.1x0.1_regriddedto0.5.nc')
-    total_edgarc = nc.Dataset(DIR_EMISSIONS+
-        'edgar/v50_NOx_2015.0.1x0.1_regriddedto0.5.nc')
-    lat_edgarc = total_edgarc.variables['lat'][:]
-    lng_edgarc = total_edgarc.variables['lon'][:]
-    lng_edgarc = (lng_edgarc + 180) % 360 - 180
-    total_edgarc = total_edgarc.variables['emi_nox'][:]
-    road_edgarc = road_edgarc.variables['emi_nox'][:]
     # Open CEDS
     ceds = nc.Dataset(DIR_EMISSIONS+'ceds/NO-em-total-anthro_CEDS_2017.nc')
     lng_ceds = ceds.variables['lon'][:]
@@ -621,9 +606,7 @@ def fig4(focuscities, bcm, stationcoords, coarse=False):
         rcor_ceds+road_ceds+shp_ceds+slv_ceds+wst_ceds)
     # Loop through cities
     fraccities_ceds, fraccities_edgar, fraccities_emep = [], [], []
-    fraccities_edgarc, fraccities_emepc = [], []
     idx_ceds, idx_edgar, idx_emep = [], [], []
-    idx_edgarc, idx_emepc = [], []
     dno2, cities = [], []
     i = 0
     # Reorder cities by diesel share %
@@ -638,38 +621,26 @@ def fig4(focuscities, bcm, stationcoords, coarse=False):
             # citycoords = stationcoords.loc[stationcoords['City']=='Milan']
         # if city == 'Berlin C40':
             # citycoords = stationcoords.loc[stationcoords['City']=='Berlin']
-        tot_ceds, tot_edgar, tot_emep, tot_edgarc, tot_emepc = [], [], [], [], []
-        tra_ceds, tra_edgar, tra_emep, tra_edgarc, tra_emepc = [], [], [], [], []
+        tot_ceds, tot_edgar, tot_emep = [], [], []
+        tra_ceds, tra_edgar, tra_emep = [], [], []
         for index, row in citycoords.iterrows():
             # EMEP near AQ monitor; note that EMEP is only for the ~European
             # domain, so only consider cities in the EU
             lng_emep_closest = geo_idx(row['Longitude'], lng_emep)
             lat_emep_closest = geo_idx(row['Latitude'], lat_emep)
-            lng_emepc_closest = geo_idx(row['Longitude'], lng_emepc)
-            lat_emepc_closest = geo_idx(row['Latitude'], lat_emepc)        
             if (lat_emep_closest is None) or (lng_emep_closest is None):
                 tot_emep.append(np.nan)
-                tot_emepc.append(np.nan)
                 tra_emep.append(np.nan)
-                tra_emepc.append(np.nan)            
             else:
                 tot_emep.append(total_emep[lat_emep_closest, lng_emep_closest])
-                tot_emepc.append(total_emepc[lat_emepc_closest, lng_emepc_closest])
                 tra_emep.append(road_emep[lat_emep_closest, lng_emep_closest])
-                tra_emepc.append(road_emepc[lat_emepc_closest, lng_emepc_closest]) 
             # EDGAR near AQ monitor
             lng_edgar_closest = geo_idx(row['Longitude'], lng_edgar)
             lat_edgar_closest = geo_idx(row['Latitude'], lat_edgar)
-            lng_edgarc_closest = geo_idx(row['Longitude'], lng_edgarc)
-            lat_edgarc_closest = geo_idx(row['Latitude'], lat_edgarc)
             tot_edgar.append(total_edgar[lat_edgar_closest, 
                 lng_edgar_closest])
             tra_edgar.append(road_edgar[lat_edgar_closest, 
                 lng_edgar_closest])        
-            tot_edgarc.append(total_edgarc[lat_edgarc_closest, 
-                lng_edgarc_closest])
-            tra_edgarc.append(road_edgarc[lat_edgarc_closest, 
-                lng_edgarc_closest])
             # CEDS near AQ monitor
             lng_ceds_closest = geo_idx(row['Longitude'], lng_ceds)
             lat_ceds_closest = geo_idx(row['Latitude'], lat_ceds)
@@ -682,9 +653,7 @@ def fig4(focuscities, bcm, stationcoords, coarse=False):
         # ratio and then averaging)
         fraccities_ceds.append(np.nansum(tra_ceds)/np.nansum(tot_ceds))
         fraccities_emep.append(np.nansum(tra_emep)/np.nansum(tot_emep))
-        fraccities_emepc.append(np.nansum(tra_emepc)/np.nansum(tot_emepc))
         fraccities_edgar.append(np.nansum(tra_edgar)/np.nansum(tot_edgar))
-        fraccities_edgarc.append(np.nansum(tra_edgarc)/np.nansum(tot_edgarc))    
         # Indices for plotting
         idx_emep.append(i)
         i = i+1            
@@ -722,37 +691,34 @@ def fig4(focuscities, bcm, stationcoords, coarse=False):
     ax2 = plt.subplot2grid((1,2),(0,1))
     breaker = 11
     width = 1
+    # First half
     ax1.barh(idx_ceds[:breaker], fraccities_ceds[:breaker], width, 
         color=cmap(norm(dno2))[:breaker], edgecolor='k', clip_on=False)
-    ax1.barh(idx_emep[:breaker], fraccities_emepc[:breaker], width, 
-        color=cmap(norm(dno2))[:breaker], edgecolor='k', zorder=0, clip_on=False)
-    ax1.plot(fraccities_emep[:breaker], idx_emep[:breaker], 'ro', 
-        markersize=2.5, zorder=10, clip_on=False)
-    ax1.barh(idx_edgar[:breaker], fraccities_edgarc[:breaker], width, 
-        color=cmap(norm(dno2))[:breaker], edgecolor='k', zorder=0, clip_on=False)
-    ax1.plot(fraccities_edgar[:breaker], idx_edgar[:breaker], 'ro', 
-        markersize=2.5, zorder=10, clip_on=False)
+    ax1.barh(idx_emep[:breaker], fraccities_emep[:breaker], width, 
+        color=cmap(norm(dno2))[:breaker], edgecolor='k', zorder=0, 
+        clip_on=False)
+    ax1.barh(idx_edgar[:breaker], fraccities_edgar[:breaker], width, 
+        color=cmap(norm(dno2))[:breaker], edgecolor='k', zorder=0, 
+        clip_on=False)
     ax1.set_yticks(idx_edgar[:breaker])
     ax1.set_yticklabels(cities[:breaker])
+    # Second half
     ax2.barh(idx_ceds[breaker:], fraccities_ceds[breaker:], width, 
         color=cmap(norm(dno2))[breaker:], edgecolor='k', clip_on=False)
-    ax2.barh(idx_edgar[breaker:], fraccities_edgarc[breaker:], width,
+    ax2.barh(idx_emep[breaker:], fraccities_emep[breaker:], width,
         color=cmap(norm(dno2))[breaker:], edgecolor='k', clip_on=False)
-    plot = ax2.barh(idx_emep[breaker:], fraccities_emepc[breaker:], width, 
+    ax2.barh(idx_edgar[breaker:], fraccities_edgar[breaker:], width, 
         color=cmap(norm(dno2))[breaker:], edgecolor='k', clip_on=False)
-    ax2.plot(fraccities_edgar[breaker:], idx_edgar[breaker:], 'ro', 
-        markersize=2.5, zorder=10, clip_on=False)
-    ax2.plot(fraccities_emep[breaker:], idx_emep[breaker:], 'ro', 
-        markersize=2.5, zorder=10, clip_on=False)
     ax2.set_yticks(idx_edgar[breaker:])
     ax2.set_yticklabels(cities[breaker:])
-    # # Make quasi-legend
+    # Make quasi-legend
     ax1.text(fraccities_ceds[0]+0.08, idx_ceds[0]+1.2, 'CEDS', ha='left', va='center')
     ax1.plot([fraccities_ceds[0]+0.015, 0.24], [2.25, 2.9],'k', lw=0.5)    
-    ax1.plot([fraccities_emepc[0]+0.015, 0.41], [0, 0],'k', lw=0.5)
-    ax1.text(0.42, idx_edgar[0]+0.8, 'EDGAR', ha='left', va='center')
-    ax1.plot([fraccities_edgarc[0]+0.015, 0.41], [1.25,1.6],'k', lw=0.5)
-    ax1.text(0.42, idx_emep[0], 'EMEP', ha='left', va='center')
+    # ax1.plot([fraccities_emep[0]+0.015, 0.41], [0, 0],'k', lw=0.5)
+    ax1.text(0.49, idx_edgar[0]+0.8, 'EDGAR', ha='left', va='center')
+    ax1.plot([fraccities_edgar[0]+0.015, 0.46], [1.2,1.6],'k', lw=0.5)
+    ax1.text(fraccities_emep[0]+0.015, idx_emep[0], 'EMEP', ha='left', 
+        va='center')
     # Aesthetics  
     for i in idx_edgar[:breaker]:
         ax1.vlines(-0.001, i-2, i+2, color='k', ls='-', lw=1.1, zorder=5, clip_on=False)
@@ -787,7 +753,7 @@ def fig4(focuscities, bcm, stationcoords, coarse=False):
         label='$\mathregular{\Delta}$ NO$_{\mathregular{2}}$ [%]')
     for ax in [ax1, ax2]:
         ax.invert_yaxis()
-    plt.savefig(DIR_FIG+'fig4_eu.png', dpi=1000)
+    plt.savefig(DIR_FIG+'fig4_eu.pdf', dpi=1000)
     return
 
 def figS1():
@@ -829,7 +795,7 @@ def figS1():
         axes[i].add_image(request, 11)
         axes[i].set_adjustable('datalim')
     plt.subplots_adjust(left=0.03, right=0.97, top=0.97, bottom=0.03)    
-    # plt.savefig(DIR_FIG+'figS1a_eu.png', dpi=1000)
+    plt.savefig(DIR_FIG+'figS1a_eu.pdf', dpi=600)
     plt.show()
     # For the rest of the focus cities
     fig, axes = plt.subplots(figsize=(8.5, 11), nrows=5, ncols=3, 
@@ -867,7 +833,7 @@ def figS1():
     for i in np.arange(7,15,1):
         axes[i].axis('off')     
     plt.subplots_adjust(left=0.03, right=0.97, top=0.97, bottom=0.03)
-    # plt.savefig(DIR_FIG+'figS1b_eu.png', dpi=1000)
+    plt.savefig(DIR_FIG+'figS1b_eu.pdf', dpi=600)
     plt.show()
     return
 
@@ -1062,6 +1028,7 @@ def figS3():
 def figS4(): 
     """
     """
+    import math
     import numpy as np
     import pandas as pd
     import matplotlib.pyplot as plt
@@ -1223,7 +1190,7 @@ def figS4():
         ax.set_xticklabels([])
         ax.set_ylim([0, maxlim])
         ax.yaxis.set_major_locator(plt.MaxNLocator(4))
-        if (i==7) or (i==8): 
+        if (i==3) or (i==4): 
             ax.set_xticklabels(['Jan\n2019', '', 'Mar', '', 'May', '', 
                 'Jul', '', 'Sep', '', 'Nov', '', 'Jan\n2020', '', 
                 'Mar', '', 'May', ''], fontsize=9)
@@ -2100,157 +2067,157 @@ import readc40aq
 import readc40mobility
 focuscities = build_focuscities(True)
 
-# # Load GEOSCF data (AQ and meteorology)
-# aqc = pd.read_csv(DIR_MODEL+'aqc_tavg_1d_cities_v2openaq.csv', delimiter=',', 
-#     header=0, engine='python', parse_dates=['time'], date_parser=lambda x: 
-#     dt.datetime.strptime(x, '%Y-%m-%d'))
-# met = pd.read_csv(DIR_MODEL+'met_tavg_1d_cities_v2openaq.csv', delimiter=',', 
-#     header=0, engine='python', parse_dates=['time'], date_parser=lambda x: 
-#     dt.datetime.strptime(x, '%Y-%m-%d'))    
-# # Group by city and date and average 
-# aqc = aqc.groupby(by=['city','time']).mean().reset_index()
-# met = met.groupby(by=['city','time']).mean().reset_index()
-# model = aqc.merge(met, how='left')
-# # Add mobility information to observation DataFrame
-# mobility = readc40mobility.read_applemobility('2019-01-01', '2020-06-30')
-# mobility.reset_index(inplace=True)
-# mobility = mobility.rename(columns={'Date':'time'})
-# model = model.merge(mobility, on=['city', 'time'], how='right')
-# model = model.rename(columns={'time':'Date'})
-# model['Date'] = pd.to_datetime(model['Date'])
-# model.loc[model['city']=='Berlin C40', 'city'] = 'Berlin'
-# model.loc[model['city']=='Milan C40', 'city'] = 'Milan'
-# # Repeat but for model with traffic volumes replaced by day-of-week integers
-# mobilitydow = readc40mobility.read_applemobility('2019-01-01', '2020-06-30', 
-#     dow=True)
-# mobilitydow.reset_index(inplace=True)
-# modeldow = model.loc[:, model.columns!='Volume'].merge(mobilitydow, 
-#     on=['city', 'Date'], how='right')
+# Load GEOSCF data (AQ and meteorology)
+aqc = pd.read_csv(DIR_MODEL+'aqc_tavg_1d_cities_v2openaq.csv', delimiter=',', 
+    header=0, engine='python', parse_dates=['time'], date_parser=lambda x: 
+    dt.datetime.strptime(x, '%Y-%m-%d'))
+met = pd.read_csv(DIR_MODEL+'met_tavg_1d_cities_v2openaq.csv', delimiter=',', 
+    header=0, engine='python', parse_dates=['time'], date_parser=lambda x: 
+    dt.datetime.strptime(x, '%Y-%m-%d'))    
+# Group by city and date and average 
+aqc = aqc.groupby(by=['city','time']).mean().reset_index()
+met = met.groupby(by=['city','time']).mean().reset_index()
+model = aqc.merge(met, how='left')
+# Add mobility information to observation DataFrame
+mobility = readc40mobility.read_applemobility('2019-01-01', '2020-06-30')
+mobility.reset_index(inplace=True)
+mobility = mobility.rename(columns={'Date':'time'})
+model = model.merge(mobility, on=['city', 'time'], how='right')
+model = model.rename(columns={'time':'Date'})
+model['Date'] = pd.to_datetime(model['Date'])
+model.loc[model['city']=='Berlin C40', 'city'] = 'Berlin'
+model.loc[model['city']=='Milan C40', 'city'] = 'Milan'
+# Repeat but for model with traffic volumes replaced by day-of-week integers
+mobilitydow = readc40mobility.read_applemobility('2019-01-01', '2020-06-30', 
+    dow=True)
+mobilitydow.reset_index(inplace=True)
+modeldow = model.loc[:, model.columns!='Volume'].merge(mobilitydow, 
+    on=['city', 'Date'], how='right')
 
-# # Save all station coordinates 
-# stationcoords = [] 
-# # # # # Load observations from EEA
-# obs_eea = pd.DataFrame([])
-# for countryabbrev in ['AT', 'BG', 'CZ', 'DE', 'DK', 'ES', 'FI', 'FR', 'GR', 
-#     'HR', 'HU', 'IT', 'LT', 'NL', 'PL', 'RO', 'SE']:
-#     country = pd.read_csv(DIR_AQ+'eea/'+
-#         '%s_no2_2018-2020_timeseries.csv'%countryabbrev, sep=',', 
-#         engine='python', parse_dates=['DatetimeBegin'], 
-#         date_parser=lambda x: dt.datetime.strptime(x, '%Y-%m-%d'))
-#     if country.empty != True:
-#     # Drop Unnamed: 0 row
-#         coords = pd.read_csv(DIR_AQ+'eea/'+'%s_no2_2018-2020_coords.csv'
-#             %countryabbrev, sep=',', engine='python')
-#         coords = coords.drop('Unnamed: 0', axis=1)
-#         stationcoords.append(coords)
-#         country = country.drop(['Unnamed: 0'], axis=1)
-#         country = country.rename(columns={'DatetimeBegin':'Date'})
-#         # Calculate city average
-#         country = country.groupby(by=['City','Date']).agg({
-#             'Concentration':'mean', 'Latitude':'mean',
-#             'Longitude':'mean'}).reset_index()
-#         obs_eea = obs_eea.append(country, ignore_index=False)
-# # Convert from ug/m3 NO2 to ppb (1.88 ug/m3 = 1 ppb)
-# obs_eea['Concentration'] = obs_eea['Concentration']/1.88
+# Save all station coordinates 
+stationcoords = [] 
+# # # # Load observations from EEA
+obs_eea = pd.DataFrame([])
+for countryabbrev in ['AT', 'BG', 'CZ', 'DE', 'DK', 'ES', 'FI', 'FR', 'GR', 
+    'HR', 'HU', 'IT', 'LT', 'NL', 'PL', 'RO', 'SE']:
+    country = pd.read_csv(DIR_AQ+'eea/'+
+        '%s_no2_2018-2020_timeseries.csv'%countryabbrev, sep=',', 
+        engine='python', parse_dates=['DatetimeBegin'], 
+        date_parser=lambda x: dt.datetime.strptime(x, '%Y-%m-%d'))
+    if country.empty != True:
+    # Drop Unnamed: 0 row
+        coords = pd.read_csv(DIR_AQ+'eea/'+'%s_no2_2018-2020_coords.csv'
+            %countryabbrev, sep=',', engine='python')
+        coords = coords.drop('Unnamed: 0', axis=1)
+        stationcoords.append(coords)
+        country = country.drop(['Unnamed: 0'], axis=1)
+        country = country.rename(columns={'DatetimeBegin':'Date'})
+        # Calculate city average
+        country = country.groupby(by=['City','Date']).agg({
+            'Concentration':'mean', 'Latitude':'mean',
+            'Longitude':'mean'}).reset_index()
+        obs_eea = obs_eea.append(country, ignore_index=False)
+# Convert from ug/m3 NO2 to ppb (1.88 ug/m3 = 1 ppb)
+obs_eea['Concentration'] = obs_eea['Concentration']/1.88
 
-# obs_lon = readc40aq.read_london('NO2', '2019-01-01', '2020-12-31')
-# coordstemp = obs_lon.groupby(['Longitude','Latitude']).size().reset_index()
-# coordstemp['City'] = 'London C40'
-# coordstemp.rename({0:'Count'}, axis=1, inplace=True)
-# stationcoords.append(coordstemp)
-# obs_lon = obs_lon.groupby(by=['Date']).agg({
-#     'Concentration':'mean', 'Latitude':'mean',
-#     'Longitude':'mean', 'City':'first'}).reset_index()
-# obs_eea = obs_eea.append(obs_lon, ignore_index=False)
-# # Milan observations from EEA are more or less identical to the ones supplied
-# # by C40; however, the EEA observations have a few missing days' worth of data
-# # that make the timeseries plots look a little weird, so replace the EEA
-# # observations with C40 ones
-# obs_eea = obs_eea[~obs_eea.City.isin(['Milan'])]
-# obs_mil = readc40aq.read_milan('NO2', '2019-01-01', '2020-12-31')
-# obs_mil['City'] = 'Milan'
-# coordstemp = obs_mil.groupby(['Longitude','Latitude']).size().reset_index()
-# coordstemp['City'] = 'Milan'
-# coordstemp.rename({0:'Count'}, axis=1, inplace=True)
-# obs_mil = obs_mil.groupby(by=['Date']).agg({
-#     'Concentration':'mean', 'Latitude':'mean',
-#     'Longitude':'mean', 'City':'first'}).reset_index()
-# obs_eea = obs_eea.append(obs_mil, ignore_index=False)
-# stationcoords = pd.concat(stationcoords)
-# # Now add delete Milan's coordinates (from EEA) to this DataFrame and then
-# # add Milan's coordinates from C40. Note that this command must be done 
-# # after concatenating the DataFrame from a list
-# stationcoords = stationcoords[~stationcoords.City.isin(['Milan'])]
-# stationcoords = stationcoords.append(coordstemp)
-# obs = obs_eea
+obs_lon = readc40aq.read_london('NO2', '2019-01-01', '2020-12-31')
+coordstemp = obs_lon.groupby(['Longitude','Latitude']).size().reset_index()
+coordstemp['City'] = 'London C40'
+coordstemp.rename({0:'Count'}, axis=1, inplace=True)
+stationcoords.append(coordstemp)
+obs_lon = obs_lon.groupby(by=['Date']).agg({
+    'Concentration':'mean', 'Latitude':'mean',
+    'Longitude':'mean', 'City':'first'}).reset_index()
+obs_eea = obs_eea.append(obs_lon, ignore_index=False)
+# Milan observations from EEA are more or less identical to the ones supplied
+# by C40; however, the EEA observations have a few missing days' worth of data
+# that make the timeseries plots look a little weird, so replace the EEA
+# observations with C40 ones
+obs_eea = obs_eea[~obs_eea.City.isin(['Milan'])]
+obs_mil = readc40aq.read_milan('NO2', '2019-01-01', '2020-12-31')
+obs_mil['City'] = 'Milan'
+coordstemp = obs_mil.groupby(['Longitude','Latitude']).size().reset_index()
+coordstemp['City'] = 'Milan'
+coordstemp.rename({0:'Count'}, axis=1, inplace=True)
+obs_mil = obs_mil.groupby(by=['Date']).agg({
+    'Concentration':'mean', 'Latitude':'mean',
+    'Longitude':'mean', 'City':'first'}).reset_index()
+obs_eea = obs_eea.append(obs_mil, ignore_index=False)
+stationcoords = pd.concat(stationcoords)
+# Now add delete Milan's coordinates (from EEA) to this DataFrame and then
+# add Milan's coordinates from C40. Note that this command must be done 
+# after concatenating the DataFrame from a list
+stationcoords = stationcoords[~stationcoords.City.isin(['Milan'])]
+stationcoords = stationcoords.append(coordstemp)
+obs = obs_eea
 
-# rorig, fac2orig, mfborig = [], [], []
-# rtrain, fac2train, mfbtrain = [], [], []
-# rvalid, fac2valid, mfbvalid = [], [], []
-# bcm = pd.DataFrame()
-# raw = pd.DataFrame()
-# shaps_all, features_all, features_lon, shaps_lon = [], [], [], []
-# # # Loop through cities and build bias-corrected model
-# for index, row in focuscities.iterrows():
-#     city = row['City']    
-#     print(city)    
-#     # Select city in model/observational dataset
-#     gcf_city = model.loc[model['city']==city]
-#     obs_city = obs.loc[obs['City']==city].copy(deep=True)
-#     # There are some cities (e.g., Brussels) with observations equal to 0 ppb
-#     # that appear to just be missing data. Change these to NaN!
-#     obs_city.loc[obs_city['Concentration']==0,'Concentration']= np.nan
-#     # QA/QC: Require that year 2019 has at least 65% of observations for 
-#     # a given city; remove observations +/- 3 standard deviations 
-#     std = np.nanstd(obs_city['Concentration'])
-#     mean = np.nanmean(obs_city['Concentration'])
-#     obs_city.loc[obs_city['Concentration']>mean+(3*std), 'Concentration'] = np.nan
-#     qaqc = obs_city.loc[(obs_city['Date']>='2019-01-01') & 
-#         (obs_city['Date']<='2019-12-31')]
-#     if qaqc.shape[0] >= (365*0.65):
-#         # Remove city column otherwise XGBoost will throw a ValueError (i.e., 
-#         # DataFrame.dtypes for data must be int, float, bool or categorical.  
-#         # When categorical type is supplied, DMatrix parameter 
-#         # `enable_categorical` must be set to `True`.city)    
-#         del gcf_city['city'], obs_city['City']
-#         # Run XGBoost for site
-#         merged_train, bias_train, obs_conc_train = \
-#             prepare_model_obs(obs_city, gcf_city, '2019-01-01', '2019-12-31')
-#         merged_full, bias_full, obs_conc_full = \
-#             prepare_model_obs(obs_city, gcf_city, '2019-01-01', '2020-06-30')
-#         (no2diff, shaps, features, ro, fac2o, mfbo, rt, fac2t, mfbt, rv, fac2v, 
-#             mfbv) = run_xgboost(args, merged_train, bias_train, merged_full, 
-#             obs_conc_full)
-#         # For SHAP plot
-#         shaps_all.append(shaps)
-#         # Save off SHAP values for London
-#         if city=='London C40':
-#             # features_lon.append(features)
-#             shaps_lon.append(shaps)
-#         # Append evaluation metrics to multi-city lists
-#         rorig.extend(ro)
-#         fac2orig.extend(fac2o)
-#         mfborig.extend(mfbo)
-#         rtrain.extend(rt)
-#         fac2train.extend(fac2t)
-#         mfbtrain.extend(mfbt)
-#         rvalid.extend(rv)
-#         fac2valid.extend(fac2v)
-#         mfbvalid.extend(mfbv)              
-#         # Group data by date and average over all k-fold predictions
-#         bcm_city = no2diff.groupby(['Date']).mean().reset_index()
-#         # Add column corresponding to city name for each ID
-#         bcm_city['City'] = city
-#         bcm = bcm.append(bcm_city, ignore_index=True)
-#         # Save off raw (non bias-corrected) observations
-#         raw_city = merged_full[['Date','NO2']].copy(deep=True)
-#         raw_city['City'] = city
-#         raw = raw.append(raw_city, ignore_index=True)
-#     else:
-#         print('Skipping %s...'%city)
-# # Concatenate features
-# shaps_concat = pd.concat(shaps_all)
-# shaps_lon = pd.concat(shaps_lon)
+rorig, fac2orig, mfborig = [], [], []
+rtrain, fac2train, mfbtrain = [], [], []
+rvalid, fac2valid, mfbvalid = [], [], []
+bcm = pd.DataFrame()
+raw = pd.DataFrame()
+shaps_all, features_all, features_lon, shaps_lon = [], [], [], []
+# # Loop through cities and build bias-corrected model
+for index, row in focuscities.iterrows():
+    city = row['City']    
+    print(city)    
+    # Select city in model/observational dataset
+    gcf_city = model.loc[model['city']==city]
+    obs_city = obs.loc[obs['City']==city].copy(deep=True)
+    # There are some cities (e.g., Brussels) with observations equal to 0 ppb
+    # that appear to just be missing data. Change these to NaN!
+    obs_city.loc[obs_city['Concentration']==0,'Concentration']= np.nan
+    # QA/QC: Require that year 2019 has at least 65% of observations for 
+    # a given city; remove observations +/- 3 standard deviations 
+    std = np.nanstd(obs_city['Concentration'])
+    mean = np.nanmean(obs_city['Concentration'])
+    obs_city.loc[obs_city['Concentration']>mean+(3*std), 'Concentration'] = np.nan
+    qaqc = obs_city.loc[(obs_city['Date']>='2019-01-01') & 
+        (obs_city['Date']<='2019-12-31')]
+    if qaqc.shape[0] >= (365*0.65):
+        # Remove city column otherwise XGBoost will throw a ValueError (i.e., 
+        # DataFrame.dtypes for data must be int, float, bool or categorical.  
+        # When categorical type is supplied, DMatrix parameter 
+        # `enable_categorical` must be set to `True`.city)    
+        del gcf_city['city'], obs_city['City']
+        # Run XGBoost for site
+        merged_train, bias_train, obs_conc_train = \
+            prepare_model_obs(obs_city, gcf_city, '2019-01-01', '2019-12-31')
+        merged_full, bias_full, obs_conc_full = \
+            prepare_model_obs(obs_city, gcf_city, '2019-01-01', '2020-06-30')
+        (no2diff, shaps, features, ro, fac2o, mfbo, rt, fac2t, mfbt, rv, fac2v, 
+            mfbv) = run_xgboost(args, merged_train, bias_train, merged_full, 
+            obs_conc_full)
+        # For SHAP plot
+        shaps_all.append(shaps)
+        # Save off SHAP values for London
+        if city=='London C40':
+            # features_lon.append(features)
+            shaps_lon.append(shaps)
+        # Append evaluation metrics to multi-city lists
+        rorig.extend(ro)
+        fac2orig.extend(fac2o)
+        mfborig.extend(mfbo)
+        rtrain.extend(rt)
+        fac2train.extend(fac2t)
+        mfbtrain.extend(mfbt)
+        rvalid.extend(rv)
+        fac2valid.extend(fac2v)
+        mfbvalid.extend(mfbv)              
+        # Group data by date and average over all k-fold predictions
+        bcm_city = no2diff.groupby(['Date']).mean().reset_index()
+        # Add column corresponding to city name for each ID
+        bcm_city['City'] = city
+        bcm = bcm.append(bcm_city, ignore_index=True)
+        # Save off raw (non bias-corrected) observations
+        raw_city = merged_full[['Date','NO2']].copy(deep=True)
+        raw_city['City'] = city
+        raw = raw.append(raw_city, ignore_index=True)
+    else:
+        print('Skipping %s...'%city)
+# Concatenate features
+shaps_concat = pd.concat(shaps_all)
+shaps_lon = pd.concat(shaps_lon)
 
 # fig2()
 # fig3(focuscities, bcm)  
