@@ -546,122 +546,16 @@ def fig3(focuscities, bcm):
     # plt.savefig(DIR_FIG+'fig3_eu.png', dpi=1000)
     return  
 
-def fig4(focuscities, bcm, stationcoords, coarse=False):
-    """
-    
-    Parameters
-    ----------
-    focuscities : TYPE
-        DESCRIPTION.
-    bcm : TYPE
-        DESCRIPTION.
-    stationcoords : TYPE
-        DESCRIPTION.
-    coarse : TYPE, optional
-        DESCRIPTION. The default is False.
-
-    Returns
-    -------
-    None
-    """
+def fig4(bcm):
+    import pandas as pd
+    import numpy as np
     import matplotlib.pyplot as plt
     from dateutil.relativedelta import relativedelta
-    import matplotlib as mpl
-    import numpy as np
-    import netCDF4 as nc
-    # Open EMEP (2017 gridded emissions at 0.1 deg x 0.1 deg resolution and 
-    # version regridded to 0.5 deg x 0.5 deg)
-    emep = nc.Dataset(DIR_EMISSIONS+'emep/'+'NOx_2019_GRID_1990_to_2017.nc')    
-    lat_emep = emep.variables['lat'][:]
-    lng_emep = emep.variables['lon'][:]
-    road_emep = emep.variables['roadtransport'][-1,:]
-    total_emep = emep.variables['sumallsectors'][-1,:]
-    # Open EDGAR (2015 gridded emissions at 0.1 deg x 0.1 deg resolution and
-    # version )
-    roadtransport_edgar = nc.Dataset(DIR_EMISSIONS+
-        'edgar/v50_NOx_2015_TRO_noRES.0.1x0.1.nc')
-    total_edgar = nc.Dataset(DIR_EMISSIONS+
-        'edgar/v50_NOx_2015.0.1x0.1.nc')
-    lat_edgar = total_edgar.variables['lat'][:]
-    lng_edgar = total_edgar.variables['lon'][:]
-    lng_edgar = (lng_edgar + 180) % 360 - 180
-    total_edgar = total_edgar.variables['emi_nox'][:]
-    road_edgar = roadtransport_edgar.variables['emi_nox'][:]
-    # Open CEDS
-    ceds = nc.Dataset(DIR_EMISSIONS+'ceds/NO-em-total-anthro_CEDS_2017.nc')
-    lng_ceds = ceds.variables['lon'][:]
-    lat_ceds = ceds.variables['lat'][:]
-    agr_ceds = np.nansum(ceds.variables['NO_agr'][:], axis=0)
-    ene_ceds = np.nansum(ceds.variables['NO_ene'][:], axis=0)
-    ind_ceds = np.nansum(ceds.variables['NO_ind'][:], axis=0)
-    nrtr_ceds = np.nansum(ceds.variables['NO_nrtr'][:], axis=0)
-    rcoc_ceds = np.nansum(ceds.variables['NO_rcoc'][:], axis=0)
-    rcoo_ceds = np.nansum(ceds.variables['NO_rcoo'][:], axis=0)
-    rcor_ceds = np.nansum(ceds.variables['NO_rcor'][:], axis=0)
-    road_ceds = np.nansum(ceds.variables['NO_road'][:], axis=0)
-    shp_ceds = np.nansum(ceds.variables['NO_shp'][:], axis=0)
-    slv_ceds = np.nansum(ceds.variables['NO_slv'][:], axis=0)
-    wst_ceds = np.nansum(ceds.variables['NO_wst'][:], axis=0)
-    total_ceds = (agr_ceds+ene_ceds+ind_ceds+nrtr_ceds+rcoc_ceds+rcoo_ceds+
-        rcor_ceds+road_ceds+shp_ceds+slv_ceds+wst_ceds)
-    # Loop through cities
-    fraccities_ceds, fraccities_edgar, fraccities_emep = [], [], []
-    idx_ceds, idx_edgar, idx_emep = [], [], []
-    dno2, cities = [], []
-    i = 0
-    # Reorder cities by diesel share %
-    cities_reorder = [x for _, x in sorted(zip(focuscities['Diesel share'], 
-        focuscities['City']))]
-    diesel_reorder = [x for x, _ in sorted(zip(focuscities['Diesel share'], 
-        focuscities['City']))]
-    for city, diesel in zip(cities_reorder, diesel_reorder):
-        # Find coordinates in city 
-        citycoords = stationcoords.loc[stationcoords['City']==city]
-        # if city == 'Milan C40':
-            # citycoords = stationcoords.loc[stationcoords['City']=='Milan']
-        # if city == 'Berlin C40':
-            # citycoords = stationcoords.loc[stationcoords['City']=='Berlin']
-        tot_ceds, tot_edgar, tot_emep = [], [], []
-        tra_ceds, tra_edgar, tra_emep = [], [], []
-        for index, row in citycoords.iterrows():
-            # EMEP near AQ monitor; note that EMEP is only for the ~European
-            # domain, so only consider cities in the EU
-            lng_emep_closest = geo_idx(row['Longitude'], lng_emep)
-            lat_emep_closest = geo_idx(row['Latitude'], lat_emep)
-            if (lat_emep_closest is None) or (lng_emep_closest is None):
-                tot_emep.append(np.nan)
-                tra_emep.append(np.nan)
-            else:
-                tot_emep.append(total_emep[lat_emep_closest, lng_emep_closest])
-                tra_emep.append(road_emep[lat_emep_closest, lng_emep_closest])
-            # EDGAR near AQ monitor
-            lng_edgar_closest = geo_idx(row['Longitude'], lng_edgar)
-            lat_edgar_closest = geo_idx(row['Latitude'], lat_edgar)
-            tot_edgar.append(total_edgar[lat_edgar_closest, 
-                lng_edgar_closest])
-            tra_edgar.append(road_edgar[lat_edgar_closest, 
-                lng_edgar_closest])        
-            # CEDS near AQ monitor
-            lng_ceds_closest = geo_idx(row['Longitude'], lng_ceds)
-            lat_ceds_closest = geo_idx(row['Latitude'], lat_ceds)
-            tot_ceds.append(total_ceds[lat_ceds_closest, 
-                lng_ceds_closest])
-            tra_ceds.append(road_ceds[lat_ceds_closest, 
-                lng_ceds_closest]) 
-        # Calculate by taking the sum of all the NOx for grid cell(s) co-located 
-        # with the city, averaging, and then taking ratio (instead of taking 
-        # ratio and then averaging)
-        fraccities_ceds.append(np.nansum(tra_ceds)/np.nansum(tot_ceds))
-        fraccities_emep.append(np.nansum(tra_emep)/np.nansum(tot_emep))
-        fraccities_edgar.append(np.nansum(tra_edgar)/np.nansum(tot_edgar))
-        # Indices for plotting
-        idx_emep.append(i)
-        i = i+1            
-        idx_edgar.append(i)
-        i = i+1    
-        idx_ceds.append(i)
-        i = i+3  
-        # Find dNO2 in city 
+    from scipy import stats
+    dno2, no2, diesel, cities = [], [], [], []
+    for index, row in focuscities.iterrows():
+        city = row['City']
+        print(city)
         bcm_city = bcm.loc[bcm['City']==city]
         bcm_city.set_index('Date', inplace=True)
         # Figure out lockdown dates
@@ -676,94 +570,164 @@ def fig4(focuscities, bcm, stationcoords, coarse=False):
         pchange = -after/before*100
         # Save output
         dno2.append(pchange)
-        if ' C40' in city:
-            city = city[:-4]
-        cities.append(city+'\n(%.1f%%)'%diesel)
-    dno2 = np.array(dno2)
+        no2.append(bcm_city['observed']['2019-01-01':'2019-12-31'].mean())
+        diesel.append(focuscities.loc[focuscities['City']==city]['Diesel share'].values[0])
+        cities.append(focuscities.loc[focuscities['City']==city]['City'].values[0])
+    diesel = np.array(diesel)
     cities = np.array(cities)
-    # Create colormap
-    cmap = plt.cm.Blues_r
-    bounds = np.linspace(-60, 0, 7)
-    norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
+    no2 = np.array(no2)
+    dno2 = np.array(dno2)
+    # Open GAINS ECLIPSE
+    eclipse, coa2 = [], []
+    for city in cities:
+        # Find corresponding country to city
+        ccountry = focuscities.loc[focuscities['City']==city]['Country'].values[0]
+        if ccountry == 'United Kingdom':
+            ccountry = 'United-Kingdom'
+        eclipse_country = pd.read_csv(DIR_EMISSIONS+'gains/ECLIPSE_%s.csv'
+            %ccountry, sep=',', skiprows=7, engine='python')
+        coa2_country = pd.read_csv(DIR_EMISSIONS+'gains/COA2_%s.csv'%ccountry,  
+            sep=',', skiprows=7, engine='python')    
+        # Sample ratio of NOx from light-duty vehicles to total NOx emissions
+        # for 2020
+        eclipse_light = eclipse_country.loc[eclipse_country['[kt/yr]']==
+            'Light duty vehicles']['2020']
+        eclipse_total = eclipse_country.loc[eclipse_country['[kt/yr]']=='Sum']['2020']
+        eclipse.append(float(eclipse_light.values[0])/
+            float(eclipse_total.values[0]))
+        coa2_light = coa2_country.loc[coa2_country['[kt/yr]']==
+            'Light duty vehicles']['2020']
+        coa2_total = coa2_country.loc[coa2_country['[kt/yr]']=='Sum']['2020']
+        coa2.append(float(coa2_light.values[0])/float(coa2_total.values[0]))
+    eclipse = np.array(eclipse)
+    coa2 = np.array(coa2)
     # Plotting
-    fig = plt.figure(figsize=(8.5,6))
-    ax1 = plt.subplot2grid((1,2),(0,0))
-    ax2 = plt.subplot2grid((1,2),(0,1))
-    breaker = 11
-    width = 1
-    # First half
-    ax1.barh(idx_ceds[:breaker], fraccities_ceds[:breaker], width, 
-        color=cmap(norm(dno2))[:breaker], edgecolor='k', clip_on=False)
-    ax1.barh(idx_emep[:breaker], fraccities_emep[:breaker], width, 
-        color=cmap(norm(dno2))[:breaker], edgecolor='k', zorder=0, 
-        clip_on=False)
-    ax1.barh(idx_edgar[:breaker], fraccities_edgar[:breaker], width, 
-        color=cmap(norm(dno2))[:breaker], edgecolor='k', zorder=0, 
-        clip_on=False)
-    ax1.set_yticks(idx_edgar[:breaker])
-    ax1.set_yticklabels(cities[:breaker])
-    # Second half
-    ax2.barh(idx_ceds[breaker:], fraccities_ceds[breaker:], width, 
-        color=cmap(norm(dno2))[breaker:], edgecolor='k', clip_on=False)
-    ax2.barh(idx_emep[breaker:], fraccities_emep[breaker:], width,
-        color=cmap(norm(dno2))[breaker:], edgecolor='k', clip_on=False)
-    ax2.barh(idx_edgar[breaker:], fraccities_edgar[breaker:], width, 
-        color=cmap(norm(dno2))[breaker:], edgecolor='k', clip_on=False)
-    ax2.set_yticks(idx_edgar[breaker:])
-    ax2.set_yticklabels(cities[breaker:])
-    # Make quasi-legend
-    ax1.text(fraccities_ceds[0]+0.08, idx_ceds[0]+1.2, 'CEDS', ha='left', va='center')
-    ax1.plot([fraccities_ceds[0]+0.015, 0.24], [2.25, 2.9],'k', lw=0.5)    
-    # ax1.plot([fraccities_emep[0]+0.015, 0.41], [0, 0],'k', lw=0.5)
-    ax1.text(0.49, idx_edgar[0]+0.8, 'EDGAR', ha='left', va='center')
-    ax1.plot([fraccities_edgar[0]+0.015, 0.46], [1.2,1.6],'k', lw=0.5)
-    ax1.text(fraccities_emep[0]+0.015, idx_emep[0], 'EMEP', ha='left', 
-        va='center')
-    # Aesthetics  
-    for i in idx_edgar[:breaker]:
-        ax1.vlines(-0.001, i-2, i+2, color='k', ls='-', lw=1.1, zorder=5, clip_on=False)
-    for i in idx_edgar[breaker:]:
-        ax2.vlines(-0.001, i-2, i+2, color='k', ls='-', lw=1.1, zorder=5, clip_on=False)
-    for ax in [ax1, ax2]:
-        for side in ['top', 'bottom', 'left', 'right']:
-            ax.spines[side].set_visible(False)
-        ax.set_xlim([0, 1.])
-        ax.set_xticks([0, 0.2, 0.4, 0.6, 0.8, 1.])
-        ax.set_xticklabels(['0%','20%','40%','60%','80%', '100%'])
-        ax.xaxis.tick_top()
-        ax.tick_params(axis=u'x', which=u'both',length=0, pad=-6)
-        ax.tick_params(axis=u'y', which=u'both',length=0, pad=3) 
-    # Grid lines
-    ax1.set_ylim([-3, 55])
-    for vlin in [0.2, 0.4, 0.6, 0.8 ,1.]:
-        ax1.vlines(vlin, -1, 53, color='darkgrey', 
-            linestyle='-', lw=0.5, zorder=0)    
-    ax2.set_ylim([52, 110])
-    for vlin in [0.2, 0.4, 0.6, 0.8, 1.]:
-        ax2.vlines(vlin, 54, 108, color='darkgrey', 
-            linestyle='-', lw=0.5, zorder=0)    
-    plt.subplots_adjust(wspace=0.5, right=0.95, top=0.95)
-    # Colorbar for dNO2
-    half1 = (ax1.get_position().x1+ax1.get_position().x0)/2.
-    half2 = (ax2.get_position().x1+ax2.get_position().x0)/2. 
-    caxbase = fig.add_axes([half1, ax1.get_position().y0-0.02, 
-        (half2-half1), 0.02])
-    cb = mpl.colorbar.ColorbarBase(caxbase, cmap=cmap, norm=norm, 
-        spacing='proportional', orientation='horizontal', extend='both',
-        label='$\mathregular{\Delta}$ NO$_{\mathregular{2}}$ [%]')
-    for ax in [ax1, ax2]:
-        ax.invert_yaxis()
+    fig = plt.figure(figsize=(6,6))
+    ax1 = plt.subplot2grid((2,2),(0,0))
+    ax2 = plt.subplot2grid((2,2),(0,1))
+    ax3 = plt.subplot2grid((2,2),(1,0))
+    ax4 = plt.subplot2grid((2,2),(1,1))
+    # Hypothesis plot
+    # Define numbers of generated data points and bins per axis.
+    np.random.seed(7)
+    x = np.linspace(0, 100, 18) # 1000 values between 0 and 100
+    delta = np.random.uniform(0, 15, x.size)
+    y = 0.4*x + delta -2
+    y[y<13.] = np.nan
+    ymask = np.isfinite(y)
+    ax1.hist2d(x[ymask], y[ymask], bins=4, cmap='Greys', alpha=0.3)
+    ax1.scatter(x, y, color='k', clip_on=False)
+    ax1.text(0.05, 0.05, 'Smaller $\mathregular{\Delta}$NO$_{\mathregular{2}}$,'+ 
+        '\nSmaller light-duty\n vehicle contribution ', 
+        transform=ax1.transAxes, fontsize=7)
+    # ax1.text(0.05, 0.95, 'Larger $\mathregular{\Delta}$NO$_{\mathregular{2}}$,'+ 
+    #     '\nSmaller light-duty\n vehicle contribution', 
+    #     transform=ax1.transAxes, fontsize=7, va='top')
+    ax1.text(0.95, 0.97, 'Larger $\mathregular{\Delta}$NO$_{\mathregular{2}}$,'+ 
+        '\nLarger light-duty\n vehicle contribution', clip_on=False,
+        transform=ax1.transAxes, fontsize=7, va='top', ha='right')
+    # ax1.text(0.95, 0.05, 'Smaller $\mathregular{\Delta}$NO$_{\mathregular{2}}$,'+ 
+    #     '\nLarger light-duty\n vehicle contribution ', 
+    #     transform=ax1.transAxes, fontsize=7, va='bottom', ha='right')
+    ax1.spines['left'].set_position('zero')
+    ax1.spines['right'].set_visible(False)
+    ax1.spines['bottom'].set_position('zero')
+    ax1.spines['top'].set_visible(False)
+    ax1.xaxis.set_ticks_position('bottom')
+    ax1.yaxis.set_ticks_position('left')
+    ax1.set_xlim([0,110])
+    ax1.set_ylim([0,60])
+    ax1.set_xticks([])
+    ax1.set_yticks([])
+    # Make arrows
+    ax1.plot((1), (0), ls="", marker=">", ms=7, color="k",
+        transform=ax1.get_yaxis_transform(), clip_on=False)
+    ax1.plot((0), (0.975), ls="", marker="^", ms=7, color="k",
+        transform=ax1.get_xaxis_transform(), clip_on=False)
+    ax1.set_xlabel('Increasing importance of light-\nduty vehicle NO$_{x}$', 
+        loc='left')
+    ax1.set_ylabel('Increasing NO$_{\mathregular{2}}$ reduction', loc='bottom')
+    
+    # Define bins for diesel shares
+    p0 = np.nanpercentile(diesel, 0)
+    p33 = np.nanpercentile(diesel, 33.3)
+    p66 = np.nanpercentile(diesel, 66.6)
+    p100 = np.nanpercentile(diesel, 100)
+    # Small diesel shares plot
+    wherebin = np.where((diesel>p0)&(diesel<=p33))[0]
+    dno2bin = dno2[wherebin]
+    eclipsebin = eclipse[wherebin]
+    coa2bin = coa2[wherebin]
+    ax2.plot(eclipsebin, -1*dno2bin, color=agred, marker='o', clip_on=False, 
+        ls='none', zorder=100)
+    ax2.plot(coa2bin, -1*dno2bin, color=agnavy, marker='o', clip_on=False, 
+        ls='none', zorder=100)
+    ax2.set_ylim([0, 25])
+    ax2.set_xlim([0.05, 0.25])
+    ax2.set_xticks(np.linspace(0.05, 0.25, 5))
+    ax2.set_xticklabels(['5', '', '15', '', '25'])
+    # Add statistical information 
+    slope, intercept, r_value, p_value, std_err = stats.linregress(
+        -1*np.hstack([dno2bin, dno2bin]), 100*np.hstack([eclipsebin, coa2bin]))
+    txtstr = 'r = %.2f\np-value = %.2f'%(r_value, p_value)
+    ax2.text(0.02, 0.98, txtstr, color='darkgrey', 
+        transform=ax2.transAxes, va='top', ha='left')
+    # Medium diesel shares plot
+    wherebin = np.where((diesel>p33)&(diesel<=p66))[0]
+    dno2bin = dno2[wherebin]
+    eclipsebin = eclipse[wherebin]
+    coa2bin = coa2[wherebin]
+    ax3.plot(eclipsebin, -1*dno2bin, color=agred, marker='o', ls='none')
+    ax3.plot(coa2bin, -1*dno2bin, color=agnavy, marker='o', ls='none')
+    ax3.set_ylim([0, 40])
+    ax3.set_xticks([0,10,20,30,40])
+    ax3.set_xlim([0.06, 0.34])
+    ax3.set_xticks(np.linspace(0.06, 0.34, 5))
+    ax3.set_xticklabels(['6','','20','','40'])
+    slope, intercept, r_value, p_value, std_err = stats.linregress(
+        -1*np.hstack([dno2bin, dno2bin]), 100*np.hstack([eclipsebin, coa2bin]))
+    txtstr = 'r = %.2f\np-value = %.2f'%(r_value, p_value)
+    ax3.text(0.02, 0.98, txtstr, color='darkgrey', 
+        transform=ax3.transAxes, va='top', ha='left')
+    # Large diesel shares plot
+    wherebin = np.where((diesel>p66)&(diesel<=p100))[0]
+    dno2bin = dno2[wherebin]
+    eclipsebin = eclipse[wherebin]
+    coa2bin = coa2[wherebin]
+    ax4.plot(eclipsebin, -1*dno2bin, color=agred, marker='o', ls='none', 
+        label='ECLIPSE')
+    ax4.plot(coa2bin, -1*dno2bin, color=agnavy, marker='o', ls='none',
+        label='Clean Air Outlook')
+    ax4.set_ylim([0, 64])
+    ax4.set_yticks(np.linspace(0,64,5))
+    ax4.set_xlim([0.1, 0.4])
+    ax4.set_xticks(np.linspace(0.1, 0.4, 5))
+    ax4.set_xticklabels(['10','','25','','40'])
+    slope, intercept, r_value, p_value, std_err = stats.linregress(
+        -1*np.hstack([dno2bin, dno2bin]), 100*np.hstack([eclipsebin, coa2bin]))
+    txtstr = 'r = %.2f\np-value = %.2f'%(r_value, p_value)
+    ax4.text(0.02, 0.98, txtstr, color='darkgrey', 
+        transform=ax4.transAxes, va='top', ha='left')
+    ax4.legend(loc=(-0.95, -0.43), frameon=False, ncol=2)                                                                  
+    for ax in [ax2, ax3, ax4]:
+        ax.set_ylabel('NO$_{\mathregular{2}}$ reduction [%]', loc='bottom')
+        ax.set_xlabel('NO$_{x,\:\mathregular{Light\u2212duty}}$ : '+\
+            'NO$_{x,\:\mathregular{Total}}$  [%]', loc='left')    
+    # Aesthetics
+    ax1.set_title('(a) Hypothesis', loc='left')
+    ax2.set_title('(b) Small diesel shares', loc='left')
+    ax3.set_title('(c) Medium diesel shares', loc='left')
+    ax4.set_title('(d) Large diesel shares', loc='left')
+    plt.subplots_adjust(wspace=0.45, hspace=0.45, bottom=0.15, top=0.95)
     plt.savefig(DIR_FIG+'fig4_eu.pdf', dpi=1000)
     return
 
-def figS1():
+def figS1(bcm):
     """    
     """
     import numpy as np
     import matplotlib.pyplot as plt
     import cartopy.crs as ccrs
-    from cartopy.io import shapereader
-    from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
     import cartopy.io.img_tiles as cimgt
     # Options that work and look halfway decent are: 'GoogleTiles',
     # 'GoogleWTS', 'QuadtreeTiles', 'Stamen'
@@ -2067,157 +2031,157 @@ import readc40aq
 import readc40mobility
 focuscities = build_focuscities(True)
 
-# Load GEOSCF data (AQ and meteorology)
-aqc = pd.read_csv(DIR_MODEL+'aqc_tavg_1d_cities_v2openaq.csv', delimiter=',', 
-    header=0, engine='python', parse_dates=['time'], date_parser=lambda x: 
-    dt.datetime.strptime(x, '%Y-%m-%d'))
-met = pd.read_csv(DIR_MODEL+'met_tavg_1d_cities_v2openaq.csv', delimiter=',', 
-    header=0, engine='python', parse_dates=['time'], date_parser=lambda x: 
-    dt.datetime.strptime(x, '%Y-%m-%d'))    
-# Group by city and date and average 
-aqc = aqc.groupby(by=['city','time']).mean().reset_index()
-met = met.groupby(by=['city','time']).mean().reset_index()
-model = aqc.merge(met, how='left')
-# Add mobility information to observation DataFrame
-mobility = readc40mobility.read_applemobility('2019-01-01', '2020-06-30')
-mobility.reset_index(inplace=True)
-mobility = mobility.rename(columns={'Date':'time'})
-model = model.merge(mobility, on=['city', 'time'], how='right')
-model = model.rename(columns={'time':'Date'})
-model['Date'] = pd.to_datetime(model['Date'])
-model.loc[model['city']=='Berlin C40', 'city'] = 'Berlin'
-model.loc[model['city']=='Milan C40', 'city'] = 'Milan'
-# Repeat but for model with traffic volumes replaced by day-of-week integers
-mobilitydow = readc40mobility.read_applemobility('2019-01-01', '2020-06-30', 
-    dow=True)
-mobilitydow.reset_index(inplace=True)
-modeldow = model.loc[:, model.columns!='Volume'].merge(mobilitydow, 
-    on=['city', 'Date'], how='right')
+# # Load GEOSCF data (AQ and meteorology)
+# aqc = pd.read_csv(DIR_MODEL+'aqc_tavg_1d_cities_v2openaq.csv', delimiter=',', 
+#     header=0, engine='python', parse_dates=['time'], date_parser=lambda x: 
+#     dt.datetime.strptime(x, '%Y-%m-%d'))
+# met = pd.read_csv(DIR_MODEL+'met_tavg_1d_cities_v2openaq.csv', delimiter=',', 
+#     header=0, engine='python', parse_dates=['time'], date_parser=lambda x: 
+#     dt.datetime.strptime(x, '%Y-%m-%d'))    
+# # Group by city and date and average 
+# aqc = aqc.groupby(by=['city','time']).mean().reset_index()
+# met = met.groupby(by=['city','time']).mean().reset_index()
+# model = aqc.merge(met, how='left')
+# # Add mobility information to observation DataFrame
+# mobility = readc40mobility.read_applemobility('2019-01-01', '2020-06-30')
+# mobility.reset_index(inplace=True)
+# mobility = mobility.rename(columns={'Date':'time'})
+# model = model.merge(mobility, on=['city', 'time'], how='right')
+# model = model.rename(columns={'time':'Date'})
+# model['Date'] = pd.to_datetime(model['Date'])
+# model.loc[model['city']=='Berlin C40', 'city'] = 'Berlin'
+# model.loc[model['city']=='Milan C40', 'city'] = 'Milan'
+# # Repeat but for model with traffic volumes replaced by day-of-week integers
+# mobilitydow = readc40mobility.read_applemobility('2019-01-01', '2020-06-30', 
+#     dow=True)
+# mobilitydow.reset_index(inplace=True)
+# modeldow = model.loc[:, model.columns!='Volume'].merge(mobilitydow, 
+#     on=['city', 'Date'], how='right')
 
-# Save all station coordinates 
-stationcoords = [] 
-# # # # Load observations from EEA
-obs_eea = pd.DataFrame([])
-for countryabbrev in ['AT', 'BG', 'CZ', 'DE', 'DK', 'ES', 'FI', 'FR', 'GR', 
-    'HR', 'HU', 'IT', 'LT', 'NL', 'PL', 'RO', 'SE']:
-    country = pd.read_csv(DIR_AQ+'eea/'+
-        '%s_no2_2018-2020_timeseries.csv'%countryabbrev, sep=',', 
-        engine='python', parse_dates=['DatetimeBegin'], 
-        date_parser=lambda x: dt.datetime.strptime(x, '%Y-%m-%d'))
-    if country.empty != True:
-    # Drop Unnamed: 0 row
-        coords = pd.read_csv(DIR_AQ+'eea/'+'%s_no2_2018-2020_coords.csv'
-            %countryabbrev, sep=',', engine='python')
-        coords = coords.drop('Unnamed: 0', axis=1)
-        stationcoords.append(coords)
-        country = country.drop(['Unnamed: 0'], axis=1)
-        country = country.rename(columns={'DatetimeBegin':'Date'})
-        # Calculate city average
-        country = country.groupby(by=['City','Date']).agg({
-            'Concentration':'mean', 'Latitude':'mean',
-            'Longitude':'mean'}).reset_index()
-        obs_eea = obs_eea.append(country, ignore_index=False)
-# Convert from ug/m3 NO2 to ppb (1.88 ug/m3 = 1 ppb)
-obs_eea['Concentration'] = obs_eea['Concentration']/1.88
+# # Save all station coordinates 
+# stationcoords = [] 
+# # # # # Load observations from EEA
+# obs_eea = pd.DataFrame([])
+# for countryabbrev in ['AT', 'BG', 'CZ', 'DE', 'DK', 'ES', 'FI', 'FR', 'GR', 
+#     'HR', 'HU', 'IT', 'LT', 'NL', 'PL', 'RO', 'SE']:
+#     country = pd.read_csv(DIR_AQ+'eea/'+
+#         '%s_no2_2018-2020_timeseries.csv'%countryabbrev, sep=',', 
+#         engine='python', parse_dates=['DatetimeBegin'], 
+#         date_parser=lambda x: dt.datetime.strptime(x, '%Y-%m-%d'))
+#     if country.empty != True:
+#     # Drop Unnamed: 0 row
+#         coords = pd.read_csv(DIR_AQ+'eea/'+'%s_no2_2018-2020_coords.csv'
+#             %countryabbrev, sep=',', engine='python')
+#         coords = coords.drop('Unnamed: 0', axis=1)
+#         stationcoords.append(coords)
+#         country = country.drop(['Unnamed: 0'], axis=1)
+#         country = country.rename(columns={'DatetimeBegin':'Date'})
+#         # Calculate city average
+#         country = country.groupby(by=['City','Date']).agg({
+#             'Concentration':'mean', 'Latitude':'mean',
+#             'Longitude':'mean'}).reset_index()
+#         obs_eea = obs_eea.append(country, ignore_index=False)
+# # Convert from ug/m3 NO2 to ppb (1.88 ug/m3 = 1 ppb)
+# obs_eea['Concentration'] = obs_eea['Concentration']/1.88
 
-obs_lon = readc40aq.read_london('NO2', '2019-01-01', '2020-12-31')
-coordstemp = obs_lon.groupby(['Longitude','Latitude']).size().reset_index()
-coordstemp['City'] = 'London C40'
-coordstemp.rename({0:'Count'}, axis=1, inplace=True)
-stationcoords.append(coordstemp)
-obs_lon = obs_lon.groupby(by=['Date']).agg({
-    'Concentration':'mean', 'Latitude':'mean',
-    'Longitude':'mean', 'City':'first'}).reset_index()
-obs_eea = obs_eea.append(obs_lon, ignore_index=False)
-# Milan observations from EEA are more or less identical to the ones supplied
-# by C40; however, the EEA observations have a few missing days' worth of data
-# that make the timeseries plots look a little weird, so replace the EEA
-# observations with C40 ones
-obs_eea = obs_eea[~obs_eea.City.isin(['Milan'])]
-obs_mil = readc40aq.read_milan('NO2', '2019-01-01', '2020-12-31')
-obs_mil['City'] = 'Milan'
-coordstemp = obs_mil.groupby(['Longitude','Latitude']).size().reset_index()
-coordstemp['City'] = 'Milan'
-coordstemp.rename({0:'Count'}, axis=1, inplace=True)
-obs_mil = obs_mil.groupby(by=['Date']).agg({
-    'Concentration':'mean', 'Latitude':'mean',
-    'Longitude':'mean', 'City':'first'}).reset_index()
-obs_eea = obs_eea.append(obs_mil, ignore_index=False)
-stationcoords = pd.concat(stationcoords)
-# Now add delete Milan's coordinates (from EEA) to this DataFrame and then
-# add Milan's coordinates from C40. Note that this command must be done 
-# after concatenating the DataFrame from a list
-stationcoords = stationcoords[~stationcoords.City.isin(['Milan'])]
-stationcoords = stationcoords.append(coordstemp)
-obs = obs_eea
+# obs_lon = readc40aq.read_london('NO2', '2019-01-01', '2020-12-31')
+# coordstemp = obs_lon.groupby(['Longitude','Latitude']).size().reset_index()
+# coordstemp['City'] = 'London C40'
+# coordstemp.rename({0:'Count'}, axis=1, inplace=True)
+# stationcoords.append(coordstemp)
+# obs_lon = obs_lon.groupby(by=['Date']).agg({
+#     'Concentration':'mean', 'Latitude':'mean',
+#     'Longitude':'mean', 'City':'first'}).reset_index()
+# obs_eea = obs_eea.append(obs_lon, ignore_index=False)
+# # Milan observations from EEA are more or less identical to the ones supplied
+# # by C40; however, the EEA observations have a few missing days' worth of data
+# # that make the timeseries plots look a little weird, so replace the EEA
+# # observations with C40 ones
+# obs_eea = obs_eea[~obs_eea.City.isin(['Milan'])]
+# obs_mil = readc40aq.read_milan('NO2', '2019-01-01', '2020-12-31')
+# obs_mil['City'] = 'Milan'
+# coordstemp = obs_mil.groupby(['Longitude','Latitude']).size().reset_index()
+# coordstemp['City'] = 'Milan'
+# coordstemp.rename({0:'Count'}, axis=1, inplace=True)
+# obs_mil = obs_mil.groupby(by=['Date']).agg({
+#     'Concentration':'mean', 'Latitude':'mean',
+#     'Longitude':'mean', 'City':'first'}).reset_index()
+# obs_eea = obs_eea.append(obs_mil, ignore_index=False)
+# stationcoords = pd.concat(stationcoords)
+# # Now add delete Milan's coordinates (from EEA) to this DataFrame and then
+# # add Milan's coordinates from C40. Note that this command must be done 
+# # after concatenating the DataFrame from a list
+# stationcoords = stationcoords[~stationcoords.City.isin(['Milan'])]
+# stationcoords = stationcoords.append(coordstemp)
+# obs = obs_eea
 
-rorig, fac2orig, mfborig = [], [], []
-rtrain, fac2train, mfbtrain = [], [], []
-rvalid, fac2valid, mfbvalid = [], [], []
-bcm = pd.DataFrame()
-raw = pd.DataFrame()
-shaps_all, features_all, features_lon, shaps_lon = [], [], [], []
-# # Loop through cities and build bias-corrected model
-for index, row in focuscities.iterrows():
-    city = row['City']    
-    print(city)    
-    # Select city in model/observational dataset
-    gcf_city = model.loc[model['city']==city]
-    obs_city = obs.loc[obs['City']==city].copy(deep=True)
-    # There are some cities (e.g., Brussels) with observations equal to 0 ppb
-    # that appear to just be missing data. Change these to NaN!
-    obs_city.loc[obs_city['Concentration']==0,'Concentration']= np.nan
-    # QA/QC: Require that year 2019 has at least 65% of observations for 
-    # a given city; remove observations +/- 3 standard deviations 
-    std = np.nanstd(obs_city['Concentration'])
-    mean = np.nanmean(obs_city['Concentration'])
-    obs_city.loc[obs_city['Concentration']>mean+(3*std), 'Concentration'] = np.nan
-    qaqc = obs_city.loc[(obs_city['Date']>='2019-01-01') & 
-        (obs_city['Date']<='2019-12-31')]
-    if qaqc.shape[0] >= (365*0.65):
-        # Remove city column otherwise XGBoost will throw a ValueError (i.e., 
-        # DataFrame.dtypes for data must be int, float, bool or categorical.  
-        # When categorical type is supplied, DMatrix parameter 
-        # `enable_categorical` must be set to `True`.city)    
-        del gcf_city['city'], obs_city['City']
-        # Run XGBoost for site
-        merged_train, bias_train, obs_conc_train = \
-            prepare_model_obs(obs_city, gcf_city, '2019-01-01', '2019-12-31')
-        merged_full, bias_full, obs_conc_full = \
-            prepare_model_obs(obs_city, gcf_city, '2019-01-01', '2020-06-30')
-        (no2diff, shaps, features, ro, fac2o, mfbo, rt, fac2t, mfbt, rv, fac2v, 
-            mfbv) = run_xgboost(args, merged_train, bias_train, merged_full, 
-            obs_conc_full)
-        # For SHAP plot
-        shaps_all.append(shaps)
-        # Save off SHAP values for London
-        if city=='London C40':
-            # features_lon.append(features)
-            shaps_lon.append(shaps)
-        # Append evaluation metrics to multi-city lists
-        rorig.extend(ro)
-        fac2orig.extend(fac2o)
-        mfborig.extend(mfbo)
-        rtrain.extend(rt)
-        fac2train.extend(fac2t)
-        mfbtrain.extend(mfbt)
-        rvalid.extend(rv)
-        fac2valid.extend(fac2v)
-        mfbvalid.extend(mfbv)              
-        # Group data by date and average over all k-fold predictions
-        bcm_city = no2diff.groupby(['Date']).mean().reset_index()
-        # Add column corresponding to city name for each ID
-        bcm_city['City'] = city
-        bcm = bcm.append(bcm_city, ignore_index=True)
-        # Save off raw (non bias-corrected) observations
-        raw_city = merged_full[['Date','NO2']].copy(deep=True)
-        raw_city['City'] = city
-        raw = raw.append(raw_city, ignore_index=True)
-    else:
-        print('Skipping %s...'%city)
-# Concatenate features
-shaps_concat = pd.concat(shaps_all)
-shaps_lon = pd.concat(shaps_lon)
+# rorig, fac2orig, mfborig = [], [], []
+# rtrain, fac2train, mfbtrain = [], [], []
+# rvalid, fac2valid, mfbvalid = [], [], []
+# bcm = pd.DataFrame()
+# raw = pd.DataFrame()
+# shaps_all, features_all, features_lon, shaps_lon = [], [], [], []
+# # # Loop through cities and build bias-corrected model
+# for index, row in focuscities.iterrows():
+#     city = row['City']    
+#     print(city)    
+#     # Select city in model/observational dataset
+#     gcf_city = model.loc[model['city']==city]
+#     obs_city = obs.loc[obs['City']==city].copy(deep=True)
+#     # There are some cities (e.g., Brussels) with observations equal to 0 ppb
+#     # that appear to just be missing data. Change these to NaN!
+#     obs_city.loc[obs_city['Concentration']==0,'Concentration']= np.nan
+#     # QA/QC: Require that year 2019 has at least 65% of observations for 
+#     # a given city; remove observations +/- 3 standard deviations 
+#     std = np.nanstd(obs_city['Concentration'])
+#     mean = np.nanmean(obs_city['Concentration'])
+#     obs_city.loc[obs_city['Concentration']>mean+(3*std), 'Concentration'] = np.nan
+#     qaqc = obs_city.loc[(obs_city['Date']>='2019-01-01') & 
+#         (obs_city['Date']<='2019-12-31')]
+#     if qaqc.shape[0] >= (365*0.65):
+#         # Remove city column otherwise XGBoost will throw a ValueError (i.e., 
+#         # DataFrame.dtypes for data must be int, float, bool or categorical.  
+#         # When categorical type is supplied, DMatrix parameter 
+#         # `enable_categorical` must be set to `True`.city)    
+#         del gcf_city['city'], obs_city['City']
+#         # Run XGBoost for site
+#         merged_train, bias_train, obs_conc_train = \
+#             prepare_model_obs(obs_city, gcf_city, '2019-01-01', '2019-12-31')
+#         merged_full, bias_full, obs_conc_full = \
+#             prepare_model_obs(obs_city, gcf_city, '2019-01-01', '2020-06-30')
+#         (no2diff, shaps, features, ro, fac2o, mfbo, rt, fac2t, mfbt, rv, fac2v, 
+#             mfbv) = run_xgboost(args, merged_train, bias_train, merged_full, 
+#             obs_conc_full)
+#         # For SHAP plot
+#         shaps_all.append(shaps)
+#         # Save off SHAP values for London
+#         if city=='London C40':
+#             # features_lon.append(features)
+#             shaps_lon.append(shaps)
+#         # Append evaluation metrics to multi-city lists
+#         rorig.extend(ro)
+#         fac2orig.extend(fac2o)
+#         mfborig.extend(mfbo)
+#         rtrain.extend(rt)
+#         fac2train.extend(fac2t)
+#         mfbtrain.extend(mfbt)
+#         rvalid.extend(rv)
+#         fac2valid.extend(fac2v)
+#         mfbvalid.extend(mfbv)              
+#         # Group data by date and average over all k-fold predictions
+#         bcm_city = no2diff.groupby(['Date']).mean().reset_index()
+#         # Add column corresponding to city name for each ID
+#         bcm_city['City'] = city
+#         bcm = bcm.append(bcm_city, ignore_index=True)
+#         # Save off raw (non bias-corrected) observations
+#         raw_city = merged_full[['Date','NO2']].copy(deep=True)
+#         raw_city['City'] = city
+#         raw = raw.append(raw_city, ignore_index=True)
+#     else:
+#         print('Skipping %s...'%city)
+# # Concatenate features
+# shaps_concat = pd.concat(shaps_all)
+# shaps_lon = pd.concat(shaps_lon)
 
 # fig2()
 # fig3(focuscities, bcm)  
@@ -2231,240 +2195,3 @@ shaps_lon = pd.concat(shaps_lon)
 # figS7(obs)
 # figS8(focuscities, bcm, model, mobility)
 # figS9(focuscities, model, obs, mobility)
-
-
-
-# pos = [10, 30, 50]
-# posidx = 0
-# for left, right in zip([0,20,40], [20,40,80]):
-#     wherediesel = np.where((np.array(diesel)>left) & 
-#         (np.array(diesel)<=right))
-#     wherediesel_dno2 = dno2[wherediesel[0]]
-#     ax1.boxplot(wherediesel_dno2, positions=[pos[posidx]], widths=[10], 
-#         whis=[10,90], zorder=0, patch_artist=True,
-#         boxprops=dict(facecolor='lightgrey', color='lightgrey'),
-#         capprops=dict(color='None'),
-#         whiskerprops=dict(color='lightgrey', lw='3'),
-#             # flierprops=dict(color=c, markeredgecolor=c),
-#             medianprops=dict(color='w', lw='3'),
-#         showfliers=False)
-#     posidx = posidx + 1
-# ax1.set_xticklabels(['<20', '20-40', '>40'])
-# ax1.set_ylabel('$\mathregular{\Delta}$ NO$_{\mathregular{2}}$ [%]')
-# ax1.set_xlabel('Diesel share [%]')
-# Out[251]: Text(0.5, 0, 'Diesel share [%]')
-
-# fig = plt.figure()
-# ax1 = plt.subplot2grid((1,1),(0,0))
-# for left, right in zip([0,15,30,45,60], [15,30,45,60,75]):
-#     wherediesel = np.where((np.array(diesel)>left) & 
-#         (np.array(diesel)<=right))
-#     wherediesel_dno2 = dno2[wherediesel[0]]
-#     ax1.boxplot(wherediesel_dno2, positions=[left], widths=[10])
-# ax1.set_xticklabels(['<15', '15-30', '30-45', '45-60', '>60'])
-# ax1.set_ylabel('$\mathregular{\Delta}$ NO$_{\mathregular{2}}$ [%]')
-# ax1.set_xlabel('Diesel share [%]')
-
-"""EMISSIONS INVENTORY COMPARISON"""
-# import matplotlib.pyplot as plt
-# from dateutil.relativedelta import relativedelta
-# import matplotlib as mpl
-# import numpy as np
-# import netCDF4 as nc
-# import sys
-# sys.path.append('/Users/ghkerr/phd/GMI/')
-# from geo_idx import geo_idx
-# # Open EMEP (2017 gridded emissions at 0.1 deg x 0.1 deg resolution)
-# emep = nc.Dataset(DIR_EMISSIONS+'emep/NOx_2019_GRID_1990_to_2017.nc')
-# lat_emep = emep.variables['lat'][:]
-# lng_emep = emep.variables['lon'][:]
-# time_emep = emep.variables['time']
-# time_emep = nc.num2date(time_emep[:], time_emep.units)
-# roadtransport_emep = emep.variables['roadtransport'][:]
-# sumallsectors_emep = emep.variables['sumallsectors'][:]
-# frac_emep = roadtransport_emep[-1]/sumallsectors_emep[-1]
-# # Open EDGAR (2015 gridded emissions at 0.1 deg x 0.1 deg resolution)
-# roadtransport_edgar = nc.Dataset(DIR_EMISSIONS+
-#     'edgar/v50_NOx_2015_TRO_noRES.0.1x0.1.nc')
-# total_edgar = nc.Dataset(DIR_EMISSIONS+
-#     'edgar/v50_NOx_2015.0.1x0.1.nc')
-# lat_edgar = total_edgar.variables['lat'][:]
-# lng_edgar = total_edgar.variables['lon'][:]
-# where180 = idx = (np.abs(lng_edgar - (180))).argmin()+1
-# lng_edgar = np.concatenate((lng_edgar[where180:],
-#     lng_edgar[:where180]), axis=0)
-# lng_edgar = (lng_edgar + 180) % 360 - 180
-# total_edgar = total_edgar.variables['emi_nox'][:]
-# total_edgar = np.concatenate((total_edgar[:,where180:], 
-#     total_edgar[:,:where180]), axis=1)
-# roadtransport_edgar = roadtransport_edgar.variables['emi_nox'][:]
-# roadtransport_edgar = np.concatenate((
-#     roadtransport_edgar[:,where180:].data, 
-#     roadtransport_edgar[:,:where180].data), axis=1)
-# frac_edgar = roadtransport_edgar/total_edgar
-# # Open CEDS
-# ceds = nc.Dataset(DIR_EMISSIONS+'ceds/NO-em-total-anthro_CEDS_2017.nc')
-# lng_ceds = ceds.variables['lon'][:]
-# lat_ceds = ceds.variables['lat'][:]
-# agr_ceds = np.nansum(ceds.variables['NO_agr'][:], axis=0)
-# ene_ceds = np.nansum(ceds.variables['NO_ene'][:], axis=0)
-# ind_ceds = np.nansum(ceds.variables['NO_ind'][:], axis=0)
-# nrtr_ceds = np.nansum(ceds.variables['NO_nrtr'][:], axis=0)
-# rcoc_ceds = np.nansum(ceds.variables['NO_rcoc'][:], axis=0)
-# rcoo_ceds = np.nansum(ceds.variables['NO_rcoo'][:], axis=0)
-# rcor_ceds = np.nansum(ceds.variables['NO_rcor'][:], axis=0)
-# road_ceds = np.nansum(ceds.variables['NO_road'][:], axis=0)
-# shp_ceds = np.nansum(ceds.variables['NO_shp'][:], axis=0)
-# slv_ceds = np.nansum(ceds.variables['NO_slv'][:], axis=0)
-# wst_ceds = np.nansum(ceds.variables['NO_wst'][:], axis=0)
-# total_ceds = (agr_ceds+ene_ceds+ind_ceds+nrtr_ceds+rcoc_ceds+rcoo_ceds+
-#     rcor_ceds+road_ceds+shp_ceds+slv_ceds+wst_ceds)
-# frac_ceds = road_ceds/total_ceds
-# import matplotlib.patches as mpatches
-# from mpl_toolkits.axes_grid1 import make_axes_locatable
-# import numpy as np
-# import matplotlib.pyplot as plt
-# import matplotlib as mpl
-# import cartopy.crs as ccrs
-# # Colormap for fraction 
-# cmap100 = plt.cm.get_cmap('magma_r')
-# levels100 = np.linspace(0, 100, 11)
-# norm100 = mpl.colors.BoundaryNorm(levels100, ncolors=cmap100.N, clip=False)
-# # Colormaps for individual inventories
-# cmapemep = plt.cm.get_cmap('magma_r')
-# levelsemep = np.linspace(0, 0.0002, 11)
-# normemep = mpl.colors.BoundaryNorm(levelsemep, ncolors=cmapemep.N, 
-#     clip=False)
-# cmapceds = plt.cm.get_cmap('magma_r')
-# levelsceds = np.linspace(0, 0.15e-8, 11)
-# normceds = mpl.colors.BoundaryNorm(levelsceds, ncolors=cmapceds.N, 
-#     clip=False)
-# cmapedgar = plt.cm.get_cmap('magma_r')
-# levelsedgar = np.linspace(0, 0.05e-9, 11)
-# normedgar = mpl.colors.BoundaryNorm(levelsedgar, ncolors=cmapedgar.N, 
-#     clip=False)
-# # Plotting
-# proj = ccrs.PlateCarree(central_longitude=0.0)
-# fig = plt.figure(figsize=(10,10))
-# ax1 = plt.subplot2grid((3,3),(0,0), projection=proj)
-# ax2 = plt.subplot2grid((3,3),(0,1), projection=proj)
-# ax3 = plt.subplot2grid((3,3),(0,2), projection=proj)
-# ax4 = plt.subplot2grid((3,3),(1,0), projection=proj)
-# ax5 = plt.subplot2grid((3,3),(1,1), projection=proj)
-# ax6 = plt.subplot2grid((3,3),(1,2), projection=proj)
-# ax7 = plt.subplot2grid((3,3),(2,0), projection=proj)
-# ax8 = plt.subplot2grid((3,3),(2,1), projection=proj)
-# ax9 = plt.subplot2grid((3,3),(2,2), projection=proj)
-# # EMEP road transportation
-# ax1.set_title('(a) Emission of NOx from GNFR14\nsector F_RoadTransport', loc='left')
-# ax1.text(-0.07, 0.55, 'EMEP', va='bottom', ha='center',
-#     rotation='vertical', rotation_mode='anchor', 
-#     transform=ax1.transAxes)
-# mb1 = ax1.pcolormesh(lng_emep, lat_emep, roadtransport_emep[-1], 
-#     cmap=cmapemep, norm=normemep, transform=proj)
-# divider = make_axes_locatable(ax1)
-# cax = divider.append_axes('bottom', size='5%', pad=0.1, axes_class=plt.Axes)
-# fig.colorbar(mb1, cax=cax, orientation='horizontal', format='%.0e', 
-#     label='[Tg yr$^{-1}$]')
-# # EMEP total
-# ax2.set_title('(b) Emission of NOx from GNFR14\nsum of all sectors', loc='left')
-# mb2 = ax2.pcolormesh(lng_emep, lat_emep, sumallsectors_emep[-1], 
-#     cmap=cmapemep, norm=normemep, transform=proj)
-# divider = make_axes_locatable(ax2)
-# cax = divider.append_axes('bottom', size='5%', pad=0.1, axes_class=plt.Axes)
-# fig.colorbar(mb2, cax=cax, orientation='horizontal', format='%.0e', 
-#     label='[Tg yr$^{-1}$]')
-# # EMEP fraction 
-# ax3.set_title('(c) a/b x 100%', loc='left')
-# mb3 = ax3.pcolormesh(lng_emep, lat_emep, frac_emep*100, cmap=cmap100, 
-#     norm=norm100, transform=ccrs.PlateCarree())
-# divider = make_axes_locatable(ax3)
-# cax = divider.append_axes('bottom', size='5%', pad=0.1, axes_class=plt.Axes)
-# fig.colorbar(mb3, cax=cax, orientation='horizontal', label='[%]')
-# # CEDS transporation 
-# ax4.set_title('(d) NO anthropogenic emissions\nfrom surface Transportation (Road)', loc='left')
-# ax4.text(-0.07, 0.55, 'CEDS', va='bottom', ha='center',
-#     rotation='vertical', rotation_mode='anchor', 
-#     transform=ax4.transAxes)
-# mb4 = ax4.pcolormesh(lng_ceds, lat_ceds, road_ceds, cmap=cmapceds, 
-#     norm=normceds, transform=proj)
-# divider = make_axes_locatable(ax4)
-# cax = divider.append_axes('bottom', size='5%', pad=0.1, axes_class=plt.Axes)
-# fig.colorbar(mb4, cax=cax, orientation='horizontal', format='%.0e', 
-#     label='[kg m$^{-2}$ s$^{-1}$]')
-# # CEDS total
-# ax5.set_title('(e) Annual TOTAL Anthropogenic\nEmissions of NO', loc='left')
-# mb5 = ax5.pcolormesh(lng_ceds, lat_ceds, total_ceds, cmap=cmapceds, norm=normceds, transform=proj)
-# divider = make_axes_locatable(ax5)
-# cax = divider.append_axes('bottom', size='5%', pad=0.1, axes_class=plt.Axes)
-# fig.colorbar(mb5, cax=cax, orientation='horizontal', format='%.0e', 
-#     label='[kg m$^{-2}$ s$^{-1}$]')
-# # CEDS fraction 
-# ax6.set_title('(f) d/e x 100%', loc='left')
-# mb6 = ax6.pcolormesh(lng_ceds, lat_ceds, frac_ceds*100, cmap=cmap100, 
-#     norm=norm100, transform=ccrs.PlateCarree())
-# divider = make_axes_locatable(ax6)
-# cax = divider.append_axes('bottom', size='5%', pad=0.1, axes_class=plt.Axes)
-# fig.colorbar(mb6, cax=cax, orientation='horizontal', label='[%]')
-# # EDGAR transporation 
-# ax7.set_title('(g) NOx - IPCC 1A3b_noRES -\nRoad transportation no resuspension', loc='left')
-# ax7.text(-0.07, 0.55, 'EDGAR', va='bottom', ha='center',
-#     rotation='vertical', rotation_mode='anchor', 
-#     transform=ax7.transAxes)
-# mb7 = ax7.pcolormesh(lng_edgar, lat_edgar, roadtransport_edgar, cmap=cmapedgar, 
-#     norm=normedgar, transform=proj)
-# divider = make_axes_locatable(ax7)
-# cax = divider.append_axes('bottom', size='5%', pad=0.1, axes_class=plt.Axes)
-# fig.colorbar(mb7, cax=cax, orientation='horizontal', format='%.0e',
-#     label='[kg m$^{-2}$ s$^{-1}$]')
-# # EDGAR total 
-# ax8.set_title('(h) NOx - IPCC TOTALS -\nAll sectors', loc='left')
-# mb8 = ax8.pcolormesh(lng_edgar, lat_edgar, total_edgar, cmap=cmapedgar, 
-#     norm=normedgar, transform=proj)
-# divider = make_axes_locatable(ax8)
-# cax = divider.append_axes('bottom', size='5%', pad=0.1, axes_class=plt.Axes)
-# fig.colorbar(mb8, cax=cax, orientation='horizontal', format='%.0e', 
-#     label='[kg m$^{-2}$ s$^{-1}$]')
-# # EDGAR fraction 
-# ax9.set_title('(i) g/h x 100%', loc='left')
-# mb9 = ax9.pcolormesh(lng_edgar, lat_edgar, frac_edgar*100, cmap=cmap100, 
-#     norm=norm100, transform=ccrs.PlateCarree())
-# divider = make_axes_locatable(ax9)
-# cax = divider.append_axes('bottom', size='5%', pad=0.1, axes_class=plt.Axes)
-# fig.colorbar(mb9, cax=cax, orientation='horizontal', label='[%]')
-# for ax in [ax1, ax2, ax3, ax4, ax5, ax6, ax7, ax8, ax9]:
-#     # For EU
-#     # ax.set_extent([-10.06,35.3,33.0,61.37])
-#     # For Athens
-#     ax.set_extent([23.387925,23.990113,37.838327,38.182407])
-#     ax.coastlines(resolution='10m', color='w', linestyle='-', alpha=1)
-# citycoords = stationcoords.loc[stationcoords['City']=='Athens']
-# for index, row in citycoords.iterrows():
-#     # EMEP near AQ monitor; note that EMEP is only for the ~European
-#     # domain, so only consider cities in the EU
-#     lng_emep_closest = geo_idx(row['Longitude'], lng_emep)
-#     lat_emep_closest = geo_idx(row['Latitude'], lat_emep)
-#     ax3.plot(row['Longitude'], row['Latitude'], 'r.',
-#         transform=ccrs.PlateCarree())
-#     ax3.add_patch(mpatches.Rectangle(xy=[lng_emep[lng_emep_closest]-0.05, 
-#         lat_emep[lat_emep_closest]-0.05], width=0.1, height=0.1,
-#         edgecolor='r', facecolor='None', transform=ccrs.PlateCarree()))    
-#     # CEDS near AQ monitor
-#     lng_ceds_closest = geo_idx(row['Longitude'], lng_ceds)
-#     lat_ceds_closest = geo_idx(row['Latitude'], lat_ceds)
-#     ax6.plot(lng_ceds[lng_ceds_closest], lat_ceds[lat_ceds_closest], 'ro', 
-#         transform=ccrs.PlateCarree())
-#     ax6.plot(row['Longitude'], row['Latitude'], 'r.',
-#         transform=ccrs.PlateCarree())
-#     ax6.add_patch(mpatches.Rectangle(xy=[lng_ceds[lng_ceds_closest]-0.25, 
-#         lat_ceds[lat_ceds_closest]-0.25], width=0.5, height=0.5,
-#         edgecolor='r', facecolor='None', transform=ccrs.PlateCarree()))     
-#     # EDGAR near AQ monitor
-#     lng_edgar_closest = geo_idx(row['Longitude'], lng_edgar)
-#     lat_edgar_closest = geo_idx(row['Latitude'], lat_edgar)
-#     ax9.plot(row['Longitude'], row['Latitude'], 'r.',
-#         transform=ccrs.PlateCarree())
-#     ax9.add_patch(mpatches.Rectangle(xy=[lng_edgar[lng_edgar_closest]-0.05, 
-#         lat_edgar[lat_edgar_closest]-0.05], width=0.1, height=0.1,
-#         edgecolor='r', facecolor='None', transform=ccrs.PlateCarree()))     
-# plt.savefig('/Users/ghkerr/Desktop/inventories_compare_athens.png', dpi=600)
