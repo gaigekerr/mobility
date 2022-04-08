@@ -94,7 +94,7 @@ def train(args,Xtrain,Ytrain):
     # To ameliorate this, replace NaNs with arbitrary values (from 
     # https://github.com/dmlc/xgboost/issues/822)
     # Ytrain = np.nan_to_num(Ytrain, nan=-999.)
-    train = xgb.DMatrix(Xt, Ytrain)#, missing=-999.)
+    train = xgb.DMatrix(Xt, Ytrain, missing=-999.)
     params = {'booster':'gbtree'}
     bst = xgb.train(params,train)
     return bst
