@@ -31,13 +31,13 @@ if 'mpl' not in sys.modules:
     prop = matplotlib.font_manager.FontProperties(
             fname=DIR_TYPEFACE+'cmunbmr.ttf')
     matplotlib.rcParams['font.family'] = prop.get_name()
+    matplotlib.rcParams['mathtext.rm'] = prop.get_name()
     prop = matplotlib.font_manager.FontProperties(
         fname=DIR_TYPEFACE+'cmunbbx.ttf')
     matplotlib.rcParams['mathtext.bf'] = prop.get_name()
     prop = matplotlib.font_manager.FontProperties(
-        fname=DIR_TYPEFACE+'cmunbmr.ttf')
+        fname=DIR_TYPEFACE+'cmunbmo.otf')
     matplotlib.rcParams['mathtext.it'] = prop.get_name()
-    matplotlib.rcParams['mathtext.rm'] = prop.get_name()
     matplotlib.rcParams['axes.unicode_minus'] = False
 
 # Functions
@@ -428,7 +428,7 @@ def fig2():
     plt.subplots_adjust(left=0.05, right=0.92)
     ax1.set_title('(a) London', x=0.1, y=1.02, fontsize=12)
     ax2.set_title('(b) Absolute SHAP values', y=1.02, loc='left', fontsize=12)
-    plt.savefig(DIR_FIG+'fig2_eu.pdf', dpi=1000)
+    plt.savefig(DIR_FIG+'fig2.pdf', dpi=1000)
     return
 
 def fig3(focuscities, bcm):
@@ -504,7 +504,8 @@ def fig3(focuscities, bcm):
     ax1.plot(np.unique(diesel), np.poly1d(np.polyfit(diesel, dno2, 1)
         )(np.unique(diesel)), 'black', ls='dashed', lw=1, zorder=0, 
         label='Linear fit (y=ax+b)\na=-0.53, b=-2.21')
-    ax1.legend(frameon=False, bbox_to_anchor=(0.4, 0.42))
+    ax1.legend(frameon=False, bbox_to_anchor=(0.4, 0.5))
+    ax1.text(8.2, -45.3, 'r=-0.50\np=0.02')
     axins1 = inset_axes(ax1, width='40%', height='5%', loc='lower left', 
         bbox_to_anchor=(0.02, 0.04, 1, 1), bbox_transform=ax1.transAxes,
         borderpad=0)
@@ -542,8 +543,8 @@ def fig3(focuscities, bcm):
     #     elif txt == 'Auckland C40':
     #         txt = 'Auckland'        
     #     ax1.annotate(txt, (diesel[i]+1, dno2[i]+1), fontsize=9)
-    # plt.savefig(DIR_FIG+'fig3_citynames_eu.png', dpi=1000)    
-    # plt.savefig(DIR_FIG+'fig3_eu.png', dpi=1000)
+    # plt.savefig(DIR_FIG+'fig3_citynames.png', dpi=1000)    
+    plt.savefig(DIR_FIG+'fig3.pdf', dpi=1000)
     return  
 
 def fig4():
@@ -700,13 +701,13 @@ def fig4():
     # Add statistical information 
     slope, intercept, r_value, p_value, std_err = stats.linregress(
         ensemble, dno2)
-    txtstr = 'r = %.2f\np-value = %.2f'%(r_value, p_value)
+    txtstr = 'a=%.2f, b=%.2f\nr=%.2f\np<0.01'%(slope, intercept, r_value)
     ax2.text(0.02, 0.02, txtstr, color='black', fontsize=12,
         transform=ax2.transAxes, va='bottom', ha='left')
     # Aesthetics
     ax1.set_title('(a) Hypothesis', loc='left', fontsize=12)
     ax2.set_title('(b)', loc='left', fontsize=12)
-    ax2.set_ylim([-65,5])
+    ax2.set_ylim([-70,0])
     ax2.set_xlim([10, 40])
     ax2.set_xticks([10, 15, 20, 25, 30, 35, 40])
     ax2.set_xticklabels(['10', '15', '20', '25', '30', '35', '40'])
@@ -716,9 +717,7 @@ def fig4():
         'NO$_{x,\:\mathregular{Total}}$  [%]', loc='center', fontsize=12)  
     plt.subplots_adjust(left=0.05, wspace=0.40, bottom=0.2, top=0.92, right=0.95)
     ax2.legend(loc=8, bbox_to_anchor=(0.5, -0.3), ncol=3, frameon=False)
-    plt.savefig('/Users/ghkerr/Desktop/trialgaigekerr.png', dpi=300)
-    plt.savefig(DIR_FIG+'fig4_revised.pdf', dpi=1000)
-
+    plt.savefig(DIR_FIG+'fig4.pdf', dpi=1000)
     return
 
 def figS1(bcm):
@@ -803,6 +802,7 @@ def figS1(bcm):
 def figS2():
     """
     """
+    import pandas as pd
     import numpy as np
     import matplotlib.pyplot as plt
     from matplotlib.patches import Patch
@@ -865,10 +865,10 @@ def figS2():
         cmap=cmap, shading='auto', vmin=0, vmax=3)
     # Aesthetics
     for ax in [ax1, ax2]:
-        ax.set_xlim(['2020-01-15','2020-06-30'])
-        ax.set_xticks(['2020-01-15', '2020-02-01', '2020-02-15', '2020-03-01', 
-            '2020-03-15', '2020-04-01', '2020-04-15', '2020-05-01', 
-            '2020-05-15', '2020-06-01', '2020-06-15']) 
+        ax.set_xlim(pd.to_datetime(['2020-01-15','2020-06-30']))
+        ax.set_xticks(pd.to_datetime(['2020-01-15','2020-02-01', '2020-02-15', 
+            '2020-03-01','2020-03-15','2020-04-01','2020-04-15','2020-05-01', 
+            '2020-05-15','2020-06-01','2020-06-15'])) 
         ax.set_xticklabels(['', 'Feb\n2020', '', 'Mar', '', 'Apr', '', 'May', 
             '', 'Jun', ''], fontsize=8) 
     plt.subplots_adjust(wspace=0.3, top=0.95, right=0.95)
@@ -894,7 +894,7 @@ def figS2():
     plt.subplots_adjust(bottom=0.23, top=0.98)
     ax1.legend(handles=legend_elements, loc='center', ncol=1, 
         bbox_to_anchor=(1.15,-0.2), frameon=False, fontsize=10)
-    plt.savefig(DIR_FIG+'figS2_eu.png', dpi=1000)
+    plt.savefig(DIR_FIG+'figS2.pdf', dpi=1000)
     return
 
 def figS3():
@@ -985,38 +985,19 @@ def figS3():
     ax2.set_ylim([-0.2, 1.01])
     ax3.set_ylim([0., 1.01])
     plt.subplots_adjust(left=0.07, right=0.95, wspace=0.26)    
-    plt.savefig(DIR_FIG+'figS3_eu.png', dpi=1000)
+    plt.savefig(DIR_FIG+'figS3.pdf', dpi=1000)
     return 
 
 def figS4():
-    """
-    
-
-    Returns
-    -------
-    None.
-
-    """
     import datetime as dt
     import numpy as np
     import pandas as pd
     import matplotlib.pyplot as plt
-    import matplotlib.dates as mdates
     import sys
     sys.path.append('/Users/ghkerr/GW/mobility/')
-    import readc40aq
     import readc40mobility
     focuscities = build_focuscities(True)
-    fig = plt.figure(figsize=(10,6))
-    ax1 = plt.subplot2grid((2,6),(0,0), colspan=3)
-    ax2a = plt.subplot2grid((2,6),(0,3))
-    ax2b = plt.subplot2grid((2,6),(0,4))
-    ax2c = plt.subplot2grid((2,6),(0,5))
-    ax3 = plt.subplot2grid((2,6),(1,0), colspan=3)
-    ax4a = plt.subplot2grid((2,6),(1,3))
-    ax4b = plt.subplot2grid((2,6),(1,4))
-    ax4c = plt.subplot2grid((2,6),(1,5))
-    cityhighlight = 'Paris'
+    import math
     # # # # For 2018, 2019 unseen
     aqc = pd.read_csv(DIR_MODEL+'aqc_tavg_1d_cities_v2openaq.csv', delimiter=',', 
         header=0, engine='python', parse_dates=['time'], date_parser=lambda x: 
@@ -1056,23 +1037,20 @@ def figS4():
             obs_eea = pd.concat([obs_eea, country])
     obs_eea['Concentration'] = obs_eea['Concentration']/1.88
     obs = obs_eea
-    rorig, fac2orig, mfborig = [], [], []
-    rtrain, fac2train, mfbtrain = [], [], []
-    rvalid, fac2valid, mfbvalid = [], [], []
     bcm = pd.DataFrame()
     raw = pd.DataFrame()
     for index, row in focuscities.iterrows():
-        city = row['City']    
-        print(city)    
-        gcf_city = model.loc[model['city']==city]
-        obs_city = obs.loc[obs['City']==city].copy(deep=True)
-        obs_city.loc[obs_city['Concentration']==0,'Concentration']= np.nan
-        std = np.nanstd(obs_city['Concentration'])
-        mean = np.nanmean(obs_city['Concentration'])
-        obs_city.loc[obs_city['Concentration']>mean+(3*std), 'Concentration'] = np.nan
-        qaqc = obs_city.loc[(obs_city['Date']>='2018-01-01') & 
-            (obs_city['Date']<='2018-12-31')]
-        if qaqc.shape[0] >= (365*0.65):
+        if (row['City']=='Rome') or (row['City']=='Helsinki'):
+            pass
+        else:
+            city = row['City']    
+            print(city)    
+            gcf_city = model.loc[model['city']==city]
+            obs_city = obs.loc[obs['City']==city].copy(deep=True)
+            obs_city.loc[obs_city['Concentration']==0,'Concentration']= np.nan
+            std = np.nanstd(obs_city['Concentration'])
+            mean = np.nanmean(obs_city['Concentration'])
+            obs_city.loc[obs_city['Concentration']>mean+(3*std), 'Concentration'] = np.nan
             del gcf_city['city'], obs_city['City']
             merged_train, bias_train, obs_conc_train = \
                 prepare_model_obs(obs_city, gcf_city, '2018-01-01', '2018-12-31')
@@ -1081,23 +1059,144 @@ def figS4():
             (no2diff, shaps, features, ro, fac2o, mfbo, rt, fac2t, mfbt, rv, fac2v, 
                 mfbv) = run_xgboost(args, merged_train, bias_train, merged_full, 
                 obs_conc_full)
-            rorig.extend(ro)
-            fac2orig.extend(fac2o)
-            mfborig.extend(mfbo)
-            rtrain.extend(rt)
-            fac2train.extend(fac2t)
-            mfbtrain.extend(mfbt)
-            rvalid.extend(rv)
-            fac2valid.extend(fac2v)
-            mfbvalid.extend(mfbv)              
             bcm_city = no2diff.groupby(['Date']).mean().reset_index()
             bcm_city['City'] = city
             bcm = pd.concat([bcm, bcm_city])
             raw_city = merged_full[['Date','NO2']].copy(deep=True)
             raw_city['City'] = city
             raw = pd.concat([raw, raw_city])
+    fig, axes = plt.subplots(figsize=(8.5, 11), nrows=8, ncols=2) 
+    axes = np.hstack(axes)
+    i = 0
+    for cityhighlight in focuscities['City'][:18]:
+        if (cityhighlight=='Rome') or (cityhighlight=='Helsinki'):
+            pass
         else:
-            print('Skipping %s...'%city)
+            ax = axes[i]
+            # Pluck of observations and GEOS-CF for highlight city
+            # For 2018, 2019 unseen
+            bcm_hc = bcm.loc[bcm['City']==cityhighlight].set_index('Date')
+            raw_hc = raw.loc[raw['City']==cityhighlight].set_index('Date')
+            bcm_hc = bcm_hc.resample('1D').mean().rolling(window=7, 
+                min_periods=1).mean()
+            raw_hc = raw_hc.resample('1D').mean().rolling(
+                window=7, min_periods=1).mean()
+            before = np.nanmean(bcm_hc.loc['2019-01-01':'2019-06-30']['predicted'])
+            after = np.abs(np.nanmean(bcm_hc.loc['2019-01-01':'2019-06-30']['anomaly']))
+            pchange = -after/before*100
+            ax.plot(raw_hc['NO2'], ls='--', color='darkgrey', label='GEOS-CF')
+            ax.plot(bcm_hc['predicted'], '--k', label='Business-as-usual')
+            ax.plot(bcm_hc['observed'], '-k', label='Observed')
+            y1positive=(bcm_hc['observed']-bcm_hc['predicted'])>0
+            y1negative=(bcm_hc['observed']-bcm_hc['predicted'])<=0
+            ax.fill_between(bcm_hc.index, bcm_hc['predicted'], 
+                bcm_hc['observed'], where=y1negative, color=agnavy, interpolate=True)
+            # Determine the maximum of the observed, predicted, and BAU 
+            # concentrations
+            maxlim = np.nanmax([raw_hc['NO2'], bcm_hc['predicted'],bcm_hc['observed']])
+            maxlim = int(math.ceil(maxlim/5))*5
+            # Draw shaded gradient region for lockdown 
+            ldc = focuscities.loc[focuscities['City']==city]
+            ldstart = pd.to_datetime(ldc['start'].values[0])
+            ldend = pd.to_datetime(ldc['end'].values[0])
+            # Aesthetics
+            # Hide the right and top spines
+            for side in ['right', 'top']:
+                ax.spines[side].set_visible(False)
+            if ' C40' in cityhighlight:
+                cityhighlight = cityhighlight[:-4]
+                ax.set_title(cityhighlight, loc='left')
+            else:
+                ax.set_title(cityhighlight, loc='left')    
+            if (i % 2) == 0:
+                ax.set_ylabel('NO$_{2}$ [ppbv]')
+            ax.set_xlim(pd.to_datetime(['2018-01-01','2019-06-30']))
+            ax.set_xticks(pd.to_datetime(['2018-01-01', '2018-02-01', 
+                '2018-03-01', '2018-04-01','2018-05-01', '2018-06-01', 
+                '2018-07-01', '2018-08-01','2018-09-01', '2018-10-01', 
+                '2018-11-01', '2018-12-01','2019-01-01', '2019-02-01',
+                '2019-03-01', '2019-04-01','2019-05-01', '2019-06-01']))
+            ax.set_xticklabels([])
+            ax.set_ylim([0, maxlim])
+            ax.yaxis.set_major_locator(plt.MaxNLocator(4))
+            if (i==14) or (i==15): 
+                ax.set_xticklabels(['Jan\n2018', '', 'Mar', '', 'May', '', 
+                    'Jul', '', 'Sep', '', 'Nov', '', 'Jan\n2019', '', 
+                    'Mar', '', 'May', ''], fontsize=9)
+            # Legend
+            if i==15:
+                ax.legend(frameon=False, ncol=3, loc=3, fontsize=14, 
+                    bbox_to_anchor=(-1.2,-0.95))
+            i=i+1
+    plt.subplots_adjust(hspace=0.4, bottom=0.1, top=0.97)            
+    plt.savefig(DIR_FIG+'figS4a.pdf', dpi=1000)   
+    plt.show()
+    # Second panel         
+    fig, axes = plt.subplots(figsize=(8.5, 11), nrows=8, ncols=2) 
+    axes = np.hstack(axes)
+    i = 0
+    for cityhighlight in focuscities['City'][18:]:
+        ax = axes[i]
+        bcm_hc = bcm.loc[bcm['City']==cityhighlight].set_index('Date')
+        raw_hc = raw.loc[raw['City']==cityhighlight].set_index('Date')
+        bcm_hc = bcm_hc.resample('1D').mean().rolling(window=7, 
+            min_periods=1).mean()
+        raw_hc = raw_hc.resample('1D').mean().rolling(
+            window=7, min_periods=1).mean()
+        before = np.nanmean(bcm_hc.loc['2019-01-01':'2019-06-30']['predicted'])
+        after = np.abs(np.nanmean(bcm_hc.loc['2019-01-01':'2019-06-30']['anomaly']))
+        ax.plot(raw_hc['NO2'], ls='--', color='darkgrey', label='GEOS-CF')
+        ax.plot(bcm_hc['predicted'], '--k', label='Business-as-usual')
+        ax.plot(bcm_hc['observed'], '-k', label='Observed')
+        y1negative=(bcm_hc['observed']-bcm_hc['predicted'])<=0
+        ax.fill_between(bcm_hc.index, bcm_hc['predicted'], 
+            bcm_hc['observed'], where=y1negative, color=agnavy, interpolate=True)
+        maxlim = np.nanmax([raw_hc['NO2'], bcm_hc['predicted'],bcm_hc['observed']])
+        maxlim = int(math.ceil(maxlim/5))*5
+        for side in ['right', 'top']:
+            ax.spines[side].set_visible(False)
+        if ' C40' in cityhighlight:
+            cityhighlight = cityhighlight[:-4]
+            ax.set_title(cityhighlight, loc='left')
+        else:
+            ax.set_title(cityhighlight, loc='left')    
+        if (i % 2) == 0:
+            ax.set_ylabel('NO$_{2}$ [ppbv]')
+        ax.set_xlim(pd.to_datetime(['2018-01-01','2019-06-30']))
+        ax.set_xticks(pd.to_datetime(['2018-01-01', '2018-02-01', 
+            '2018-03-01', '2018-04-01','2018-05-01', '2018-06-01', 
+            '2018-07-01', '2018-08-01','2018-09-01', '2018-10-01', 
+            '2018-11-01', '2018-12-01','2019-01-01', '2019-02-01',
+            '2019-03-01', '2019-04-01','2019-05-01', '2019-06-01']))
+        ax.set_xticklabels([])
+        ax.set_ylim([0, maxlim])
+        ax.yaxis.set_major_locator(plt.MaxNLocator(4))
+        if (i==2) or (i==3): 
+            ax.set_xticklabels(['Jan\n2018', '', 'Mar', '', 'May', '', 
+                'Jul', '', 'Sep', '', 'Nov', '', 'Jan\n2019', '', 
+                'Mar', '', 'May', ''], fontsize=9)
+        if i==3:
+            ax.legend(frameon=False, ncol=3, loc=3, fontsize=14, 
+                bbox_to_anchor=(-1.2,-0.95))
+        i=i+1
+    # Remove blank axes
+    for i in np.arange(4,16,1):
+        axes[i].axis('off')     
+    plt.subplots_adjust(hspace=0.4, bottom=0.1, top=0.97)         
+    plt.savefig(DIR_FIG+'figS4b.pdf', dpi=1000)   
+    plt.show()
+    return
+
+def figS5():
+    import datetime as dt
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    import sys
+    sys.path.append('/Users/ghkerr/GW/mobility/')
+    import readc40mobility
+    focuscities = build_focuscities(True)
+    import math
     # # # # # For only Jan-Jun training
     aqc2 = pd.read_csv(DIR_MODEL+'aqc_tavg_1d_cities_v2openaq.csv', delimiter=',', 
         header=0, engine='python', parse_dates=['time'], date_parser=lambda x: 
@@ -1139,9 +1238,6 @@ def figS4():
     obs2 = obs_eea2
     obs2 = obs2.loc[obs2.Date.dt.month.isin([1,2,3,4,5,6])]
     model2 = model2.loc[model2.Date.dt.month.isin([1,2,3,4,5,6])]
-    rorig2, fac2orig2, mfborig2 = [], [], []
-    rtrain2, fac2train2, mfbtrain2 = [], [], []
-    rvalid2, fac2valid2, mfbvalid2 = [], [], []
     bcm2 = pd.DataFrame()
     raw2 = pd.DataFrame()
     for index, row in focuscities.iterrows():
@@ -1153,260 +1249,136 @@ def figS4():
         std = np.nanstd(obs_city2['Concentration'])
         mean = np.nanmean(obs_city2['Concentration'])
         obs_city2.loc[obs_city2['Concentration']>mean+(3*std), 'Concentration'] = np.nan
-        qaqc = obs_city2.loc[(obs_city2['Date']>='2018-01-01') & 
-            (obs_city2['Date']<='2019-06-30')]
-        if qaqc.shape[0] >= (362*0.65):
-            del gcf_city2['city'], obs_city2['City']
-            merged_train2, bias_train2, obs_conc_train2 = \
-                prepare_model_obs(obs_city2, gcf_city2, '2018-01-01', '2019-06-30')
-            merged_full2, bias_full2, obs_conc_full2 = \
-                prepare_model_obs(obs_city2, gcf_city2, '2018-01-01', '2020-06-30')
-            (no2diff2, shaps2, features2, ro2, fac2o2, mfbo2, rt2, fac2t2, mfbt2, rv2, fac2v2, 
-                mfbv2) = run_xgboost(args, merged_train2, bias_train2, merged_full2, 
-                obs_conc_full2)
-            rorig2.extend(ro2)
-            fac2orig2.extend(fac2o2)
-            mfborig2.extend(mfbo2)
-            rtrain2.extend(rt2)
-            fac2train2.extend(fac2t2)
-            mfbtrain2.extend(mfbt2)
-            rvalid2.extend(rv2)
-            fac2valid2.extend(fac2v2)
-            mfbvalid2.extend(mfbv2) 
-            bcm_city2 = no2diff2.groupby(['Date']).mean().reset_index()
-            bcm_city2['City'] = city
-            bcm2 = pd.concat([bcm2, bcm_city2])
-            raw_city2 = merged_full2[['Date','NO2']].copy(deep=True)
-            raw_city2['City'] = city
-            raw2 = pd.concat([raw2, raw_city2])
+        del gcf_city2['city'], obs_city2['City']
+        merged_train2, bias_train2, obs_conc_train2 = \
+            prepare_model_obs(obs_city2, gcf_city2, '2018-01-01', '2019-06-30')
+        merged_full2, bias_full2, obs_conc_full2 = \
+            prepare_model_obs(obs_city2, gcf_city2, '2018-01-01', '2020-06-30')
+        (no2diff2, shaps2, features2, ro2, fac2o2, mfbo2, rt2, fac2t2, mfbt2, rv2, fac2v2, 
+            mfbv2) = run_xgboost(args, merged_train2, bias_train2, merged_full2, 
+            obs_conc_full2)
+        bcm_city2 = no2diff2.groupby(['Date']).mean().reset_index()
+        bcm_city2['City'] = city
+        bcm2 = pd.concat([bcm2, bcm_city2])
+        raw_city2 = merged_full2[['Date','NO2']].copy(deep=True)
+        raw_city2['City'] = city
+        raw2 = pd.concat([raw2, raw_city2])
+    # Plotting
+    fig, axes = plt.subplots(figsize=(8.5, 11), nrows=8, ncols=2) 
+    axes = np.hstack(axes)
+    i = 0
+    for cityhighlight in focuscities['City'][:18]:
+        if (cityhighlight=='Rome') or (cityhighlight=='Helsinki'):
+            pass
         else:
-            print('Skipping %s...'%city)
-    # Pluck of observations and GEOS-CF for highlight city
-    # For 2018, 2019 unseen
-    bcm_hc = bcm.loc[bcm['City']==cityhighlight].set_index('Date')
-    raw_hc = raw.loc[raw['City']==cityhighlight].set_index('Date')
-    bcm_hc = bcm_hc.resample('1D').mean().rolling(window=7, 
-        min_periods=1).mean()
-    raw_hc = raw_hc.resample('1D').mean().rolling(
-        window=7, min_periods=1).mean()
-    before = np.nanmean(bcm_hc.loc['2019-01-01':'2019-06-30']['predicted'])
-    after = np.abs(np.nanmean(bcm_hc.loc['2019-01-01':'2019-06-30']['anomaly']))
-    pchange = -after/before*100
-    ax1.plot(raw_hc['NO2'], ls='--', color='darkgrey', label='GEOS-CF')
-    ax1.plot(bcm_hc['predicted'], '--k', label='Business-as-usual')
-    ax1.plot(bcm_hc['observed'], '-k', label='Observed')
-    y1positive=(bcm_hc['observed']-bcm_hc['predicted'])>0
-    y1negative=(bcm_hc['observed']-bcm_hc['predicted'])<=0
-    ax1.fill_between(bcm_hc.index, bcm_hc['predicted'], 
-        bcm_hc['observed'], where=y1negative, color=agnavy, interpolate=True)
-    # Aesthetics
-    ax1.set_ylim([0,36])
-    ax1.set_yticks(np.linspace(0,36,7))    
-    for side in ['right', 'top']:
-        ax1.spines[side].set_visible(False)
-    ax1.set_ylabel('NO$_{2}$ [ppbv]')
-    ax1.set_xlim([pd.to_datetime('2018-01-01'),pd.to_datetime('2019-06-30')])
-    ax1.set_xticks(['2018-01-01', '2018-02-01', '2018-03-01', '2018-04-01',
-        '2018-05-01', '2018-06-01', '2018-07-01', '2018-08-01', 
-        '2018-09-01', '2018-10-01', '2018-11-01', '2018-12-01', 
-        '2019-01-01', '2019-02-01', '2019-03-01', '2019-04-01', 
-        '2019-05-01', '2019-06-01']) 
-    ax1.set_xticklabels(['Jan\n2018', '', 'Mar', '', 'May', '', 
-        'Jul', '', 'Sep', '', 'Nov', '', 'Jan\n2019', '', 
-        'Mar', '', 'May', ''], fontsize=9) 
-    # For only Jan-Jun training
-    bcm_hc2 = bcm2.loc[bcm2['City']==cityhighlight].set_index('Date')
-    raw_hc2 = raw2.loc[raw2['City']==cityhighlight].set_index('Date')
-    bcm_hc2 = bcm_hc2.resample('1D').mean().rolling(window=7, 
-        min_periods=1).mean()
-    raw_hc2 = raw_hc2.resample('1D').mean().rolling(
-        window=7, min_periods=1).mean()
-    before = np.nanmean(bcm_hc2.loc['2020-03-17':'2020-06-21']['predicted'])
-    after = np.abs(np.nanmean(bcm_hc2.loc['2020-03-17':'2020-06-21']['anomaly']))
-    pchange = -after/before*100
-    ax3.plot(raw_hc2['NO2'], ls='--', color='darkgrey', label='GEOS-CF')
-    ax3.plot(bcm_hc2['predicted'], '--k', label='Business-as-usual')
-    ax3.plot(bcm_hc2['observed'], '-k', label='Observed')
-    y1positive=(bcm_hc2['observed']-bcm_hc2['predicted'])>0
-    y1negative=(bcm_hc2['observed']-bcm_hc2['predicted'])<=0
-    ax3.fill_between(bcm_hc2.index, bcm_hc2['predicted'], 
-        bcm_hc2['observed'], where=y1negative, color=agnavy, 
-        interpolate=True)
-    ax3.set_ylim([0,36])
-    ax3.set_yticks(np.linspace(0,36,7))    
-    for side in ['right', 'top']:
-        ax3.spines[side].set_visible(False)
-    ax3.set_ylabel('NO$_{2}$ [ppbv]')
-    ax3.set_xlim([pd.to_datetime('2018-01-01'),pd.to_datetime('2020-06-30')])
-    ax3.set_xticks(['2018-01-01', '2018-03-01', 
-        '2018-05-01', '2018-07-01', '2018-09-01', '2018-11-01', 
-        '2019-01-01', '2019-03-01', '2019-05-01', '2019-07-01', '2019-09-01',
-        '2019-11-01', '2020-01-01', '2020-03-01', '2020-05-01']) 
-    ax3.set_xticklabels(['Jan\n2018', '', 'May', '', 'Sep', '', 
-        'Jan\n2019', '', 'May', '', 'Sep', '',
-        'Jan\n2020', '', 'May'], fontsize=9) 
-    # For MFB
-    ax2a.hlines(0, xmin=0, xmax=4, color='darkgrey', ls='--', lw=2, zorder=0)
-    parts1 = ax2a.violinplot([mfborig, mfbtrain, mfbvalid], showmeans=False, 
-        showmedians=False, showextrema=False)
-    ax2a.hlines(np.median(mfborig), 0.95, 1.05, color='w', linestyle='-', lw=2,
-        zorder=10)
-    ax2a.hlines(np.median(mfbvalid), 2.95, 3.05, color='w', linestyle='-', lw=2,
-        zorder=10)   
-    for i, mfbi in enumerate([mfborig, mfbtrain, mfbvalid]):
-        q1, medians, q3 = np.percentile(mfbi, [25, 50, 75])
-        upper_adjacent_value = q3 + (q3 - q1) * 1.5
-        upper_adjacent_value = np.clip(upper_adjacent_value, q3, np.sort(mfbi)[-1])
-        lower_adjacent_value = q1 - (q3 - q1) * 1.5
-        lower_adjacent_value = np.clip(lower_adjacent_value, np.sort(mfbi)[0], q1)
-        ax2a.vlines(i+1, q1, q3, color='k', linestyle='-', lw=5)    
-        ax2a.vlines(i+1, lower_adjacent_value, upper_adjacent_value, color='k', 
-            linestyle='-', lw=1)
-    # For r
-    ax2b.hlines(1, xmin=0, xmax=4, color='darkgrey', ls='--', lw=2, zorder=0)
-    parts2 = ax2b.violinplot([rorig, rtrain, rvalid], showmeans=False, 
-        showmedians=False, showextrema=False)
-    ax2b.hlines(np.median(rorig), 0.95, 1.05, color='w', linestyle='-', lw=2,
-        zorder=10)
-    ax2b.hlines(np.median(rtrain), 1.95, 2.05, color='w', linestyle='-', lw=1,
-        zorder=10)    
-    ax2b.hlines(np.median(rvalid), 2.95, 3.05, color='w', linestyle='-', lw=2,
-        zorder=10)    
-    for i, r in enumerate([rorig, rtrain, rvalid]):
-        q1, medians, q3 = np.percentile(r, [25, 50, 75])
-        upper_adjacent_value = q3 + (q3 - q1) * 1.5
-        upper_adjacent_value = np.clip(upper_adjacent_value, q3, np.sort(r)[-1])
-        lower_adjacent_value = q1 - (q3 - q1) * 1.5
-        lower_adjacent_value = np.clip(lower_adjacent_value, np.sort(r)[0], q1)
-        ax2b.vlines(i+1, q1, q3, color='k', linestyle='-', lw=5)    
-        ax2b.vlines(i+1, lower_adjacent_value, upper_adjacent_value, color='k', linestyle='-', lw=1)
-    # F2F
-    ax2c.hlines(1, xmin=0, xmax=4, color='darkgrey', ls='--', lw=2, zorder=0)
-    parts3 = ax2c.violinplot([fac2orig, fac2train, fac2valid], showmeans=False, 
-        showmedians=False, showextrema=False)
-    ax2c.hlines(np.median(fac2orig), 0.95, 1.05, color='w', linestyle='-', lw=2,
-        zorder=10)    
-    ax2c.hlines(np.median(fac2valid), 2.95, 3.05, color='w', linestyle='-', lw=2,
-        zorder=10)    
-    for i, fac2 in enumerate([fac2orig, fac2train, fac2valid]):
-        q1, medians, q3 = np.percentile(fac2, [25, 50, 75])
-        upper_adjacent_value = q3 + (q3 - q1) * 1.5
-        upper_adjacent_value = np.clip(upper_adjacent_value, q3, np.sort(fac2)[-1])
-        lower_adjacent_value = q1 - (q3 - q1) * 1.5
-        lower_adjacent_value = np.clip(lower_adjacent_value, np.sort(fac2)[0], q1)
-        ax2c.vlines(i+1, q1, q3, color='k', linestyle='-', lw=5)    
-        ax2c.vlines(i+1, lower_adjacent_value, upper_adjacent_value, color='k', linestyle='-', lw=1)
-    for parts in [parts1, parts2, parts3]:
-        for i, pc in enumerate(parts['bodies']):
-            if i==0:
-                pc.set_facecolor(agnavy)
-            elif i==1:
-                pc.set_facecolor(agorange)
+            ax = axes[i]
+            bcm_hc2 = bcm2.loc[bcm2['City']==cityhighlight].set_index('Date')
+            raw_hc2 = raw2.loc[raw2['City']==cityhighlight].set_index('Date')
+            bcm_hc2 = bcm_hc2.resample('1D').mean().rolling(window=7, 
+                min_periods=1).mean()
+            raw_hc2 = raw_hc2.resample('1D').mean().rolling(
+                window=7, min_periods=1).mean()
+            before = np.nanmean(bcm_hc2.loc['2020-03-17':'2020-06-21']['predicted'])
+            after = np.abs(np.nanmean(bcm_hc2.loc['2020-03-17':'2020-06-21']['anomaly']))
+            ax.plot(raw_hc2['NO2'], ls='--', color='darkgrey', label='GEOS-CF')
+            ax.plot(bcm_hc2['predicted'], '--k', label='Business-as-usual')
+            ax.plot(bcm_hc2['observed'], '-k', label='Observed')
+            y1positive=(bcm_hc2['observed']-bcm_hc2['predicted'])>0
+            y1negative=(bcm_hc2['observed']-bcm_hc2['predicted'])<=0
+            ax.fill_between(bcm_hc2.index, bcm_hc2['predicted'], 
+                bcm_hc2['observed'], where=y1negative, color=agnavy, 
+                interpolate=True)
+            maxlim = np.nanmax([raw_hc2['NO2'], bcm_hc2['predicted'], 
+                bcm_hc2['observed']])
+            maxlim = int(math.ceil(maxlim/5))*5
+            for side in ['right', 'top']:
+                ax.spines[side].set_visible(False)
+            if ' C40' in cityhighlight:
+                cityhighlight = cityhighlight[:-4]
+                ax.set_title(cityhighlight, loc='left')
             else:
-                pc.set_facecolor(agpuke)
-            pc.set_edgecolor('black')
-            pc.set_alpha(1)
-    # # # # 
-    # For MFB
-    ax4a.hlines(0, xmin=0, xmax=4, color='darkgrey', ls='--', lw=2, zorder=0)
-    parts1 = ax4a.violinplot([mfborig2, mfbtrain2, mfbvalid2], showmeans=False, 
-        showmedians=False, showextrema=False)
-    ax4a.hlines(np.median(mfborig2), 0.95, 1.05, color='w', linestyle='-', lw=2,
-        zorder=10)
-    ax4a.hlines(np.median(mfbvalid2), 2.95, 3.05, color='w', linestyle='-', lw=2,
-        zorder=10)   
-    for i, mfbi in enumerate([mfborig2, mfbtrain2, mfbvalid2]):
-        q1, medians, q3 = np.percentile(mfbi, [25, 50, 75])
-        upper_adjacent_value = q3 + (q3 - q1) * 1.5
-        upper_adjacent_value = np.clip(upper_adjacent_value, q3, np.sort(mfbi)[-1])
-        lower_adjacent_value = q1 - (q3 - q1) * 1.5
-        lower_adjacent_value = np.clip(lower_adjacent_value, np.sort(mfbi)[0], q1)
-        ax4a.vlines(i+1, q1, q3, color='k', linestyle='-', lw=5)    
-        ax4a.vlines(i+1, lower_adjacent_value, upper_adjacent_value, color='k', 
-            linestyle='-', lw=1)
-    # For r
-    ax4b.hlines(1, xmin=0, xmax=4, color='darkgrey', ls='--', lw=2, zorder=0)
-    parts2 = ax4b.violinplot([rorig2, rtrain2, rvalid2], showmeans=False, 
-        showmedians=False, showextrema=False)
-    ax4b.hlines(np.median(rorig2), 0.95, 1.05, color='w', linestyle='-', lw=2,
-        zorder=10)
-    ax4b.hlines(np.median(rtrain2), 1.95, 2.05, color='w', linestyle='-', lw=1,
-        zorder=10)    
-    ax4b.hlines(np.median(rvalid2), 2.95, 3.05, color='w', linestyle='-', lw=2,
-        zorder=10)    
-    for i, r in enumerate([rorig2, rtrain2, rvalid2]):
-        q1, medians, q3 = np.percentile(r, [25, 50, 75])
-        upper_adjacent_value = q3 + (q3 - q1) * 1.5
-        upper_adjacent_value = np.clip(upper_adjacent_value, q3, np.sort(r)[-1])
-        lower_adjacent_value = q1 - (q3 - q1) * 1.5
-        lower_adjacent_value = np.clip(lower_adjacent_value, np.sort(r)[0], q1)
-        ax4b.vlines(i+1, q1, q3, color='k', linestyle='-', lw=5)    
-        ax4b.vlines(i+1, lower_adjacent_value, upper_adjacent_value, color='k', linestyle='-', lw=1)
-    # F2F
-    ax4c.hlines(1, xmin=0, xmax=4, color='darkgrey', ls='--', lw=2, zorder=0)
-    parts3 = ax4c.violinplot([fac2orig2, fac2train2, fac2valid2], showmeans=False, 
-        showmedians=False, showextrema=False)
-    ax4c.hlines(np.median(fac2orig2), 0.95, 1.05, color='w', linestyle='-', lw=2,
-        zorder=10)    
-    ax4c.hlines(np.median(fac2valid2), 2.95, 3.05, color='w', linestyle='-', lw=2,
-        zorder=10)    
-    for i, fac2 in enumerate([fac2orig2, fac2train2, fac2valid2]):
-        q1, medians, q3 = np.percentile(fac2, [25, 50, 75])
-        upper_adjacent_value = q3 + (q3 - q1) * 1.5
-        upper_adjacent_value = np.clip(upper_adjacent_value, q3, np.sort(fac2)[-1])
-        lower_adjacent_value = q1 - (q3 - q1) * 1.5
-        lower_adjacent_value = np.clip(lower_adjacent_value, np.sort(fac2)[0], q1)
-        ax4c.vlines(i+1, q1, q3, color='k', linestyle='-', lw=5)    
-        ax4c.vlines(i+1, lower_adjacent_value, upper_adjacent_value, color='k', linestyle='-', lw=1)
-    for parts in [parts1, parts2, parts3]:
-        for i, pc in enumerate(parts['bodies']):
-            if i==0:
-                pc.set_facecolor(agnavy)
-            elif i==1:
-                pc.set_facecolor(agorange)
+                ax.set_title(cityhighlight, loc='left')    
+            if (i % 2) == 0:
+                ax.set_ylabel('NO$_{2}$ [ppbv]')
+            ax.set_xlim(pd.to_datetime(['2018-01-01','2020-06-30']))
+            ax.set_xticks(['2018-01-01', '2018-03-01', 
+                '2018-05-01', '2018-07-01', '2018-09-01', '2018-11-01', 
+                '2019-01-01', '2019-03-01', '2019-05-01', '2019-07-01', '2019-09-01',
+                '2019-11-01', '2020-01-01', '2020-03-01', '2020-05-01']) 
+            ax.set_xticklabels([])
+            ax.set_ylim([0, maxlim])
+            ax.yaxis.set_major_locator(plt.MaxNLocator(3))
+            if (i==14) or (i==15): 
+                ax.set_xticklabels(['Jan\n2018', '', 'May', '', 'Sep', '', 
+                    'Jan\n2019', '', 'May', '', 'Sep', '',
+                    'Jan\n2020', '', 'May'], fontsize=9) 
+            if i==15:
+                ax.legend(frameon=False, ncol=3, loc=3, fontsize=14, 
+                    bbox_to_anchor=(-1.2,-0.95))
+            i=i+1
+    plt.subplots_adjust(hspace=0.4, bottom=0.1, top=0.97)       
+    plt.savefig(DIR_FIG+'figS5a.pdf', dpi=1000)   
+    plt.show()
+    # Plotting
+    fig, axes = plt.subplots(figsize=(8.5, 11), nrows=8, ncols=2) 
+    axes = np.hstack(axes)
+    i = 0
+    for cityhighlight in focuscities['City'][18:]:
+        if (cityhighlight=='Rome') or (cityhighlight=='Helsinki'):
+            pass
+        else:
+            ax = axes[i]
+            bcm_hc2 = bcm2.loc[bcm2['City']==cityhighlight].set_index('Date')
+            raw_hc2 = raw2.loc[raw2['City']==cityhighlight].set_index('Date')
+            bcm_hc2 = bcm_hc2.resample('1D').mean().rolling(window=7, 
+                min_periods=1).mean()
+            raw_hc2 = raw_hc2.resample('1D').mean().rolling(
+                window=7, min_periods=1).mean()
+            before = np.nanmean(bcm_hc2.loc['2020-03-17':'2020-06-21']['predicted'])
+            after = np.abs(np.nanmean(bcm_hc2.loc['2020-03-17':'2020-06-21']['anomaly']))
+            ax.plot(raw_hc2['NO2'], ls='--', color='darkgrey', label='GEOS-CF')
+            ax.plot(bcm_hc2['predicted'], '--k', label='Business-as-usual')
+            ax.plot(bcm_hc2['observed'], '-k', label='Observed')
+            y1positive=(bcm_hc2['observed']-bcm_hc2['predicted'])>0
+            y1negative=(bcm_hc2['observed']-bcm_hc2['predicted'])<=0
+            ax.fill_between(bcm_hc2.index, bcm_hc2['predicted'], 
+                bcm_hc2['observed'], where=y1negative, color=agnavy, 
+                interpolate=True)
+            maxlim = np.nanmax([raw_hc2['NO2'], bcm_hc2['predicted'], 
+                bcm_hc2['observed']])
+            maxlim = int(math.ceil(maxlim/5))*5
+            for side in ['right', 'top']:
+                ax.spines[side].set_visible(False)
+            if ' C40' in cityhighlight:
+                cityhighlight = cityhighlight[:-4]
+                ax.set_title(cityhighlight, loc='left')
             else:
-                pc.set_facecolor(agpuke)
-            pc.set_edgecolor('black')
-            pc.set_alpha(1)
-    for ax in [ax4a, ax4b, ax4c]:
-        ax.set_xticks([1,2,3])
-        ax.set_xticklabels(['GEOS-CF', 'Training', 'Testing'], rotation=35, 
-            fontsize=9, ha="right")
-        ax.tick_params(labelsize=9)
-        ax.set_xlim([0.5, 3.5])    
-    ax4a.set_ylim([-1.5, 0.5])
-    ax4b.set_ylim([-0.2, 1.01])
-    ax4c.set_ylim([0., 1.01])
-    # Aesthetics
-    ax1.set_title('(a) Paris', loc='left', fontsize=10)
-    ax2a.set_title('(b) Mean fraction\nbias', loc='left', fontsize=10)
-    ax2b.set_title('(c) Correlation\ncoefficient', loc='left', fontsize=10)
-    ax2c.set_title('(d) Factor-of-2\nfraction', loc='left', fontsize=10)
-    for ax in [ax2a, ax2b, ax2c]:
-        ax.set_xticks([1,2,3])
-        ax.set_xticklabels([], fontsize=9)
-        ax.tick_params(labelsize=9)
-        ax.set_xlim([0.5, 3.5])    
-    ax2a.set_ylim([-1.5, 0.5])
-    ax2b.set_ylim([-0.2, 1.01])
-    ax2c.set_ylim([0., 1.01])
-    ax3.set_title('(e)', loc='left', fontsize=10)
-    ax4a.set_title('(f)', loc='left', fontsize=10)
-    ax4b.set_title('(g)', loc='left', fontsize=10)
-    ax4c.set_title('(h)', loc='left', fontsize=10)
-    # Add text/legend
-    ax3.legend(frameon=False, ncol=3, loc=3, fontsize=10, 
-        bbox_to_anchor=(-0.1, -0.4))
-    fig.text(0.05, 0.25, 'Jan-Jun 2018-2019 training;'+\
-        '\nJan-June 2020 predictions', ha='center', va='center', color='k', 
-        rotation='vertical', fontsize=14)
-    fig.text(0.05, 0.75, '2018 training;\nJan-June 2019 predictions', 
-        ha='center', va='center', color='k', rotation='vertical', fontsize=14)    
-    plt.subplots_adjust(left=0.15, right=0.95, wspace=0.5, hspace=0.4)    
-    plt.savefig(DIR_FIG+'figS4.pdf', dpi=1000)
-    return 
-
-def figS5(features):
+                ax.set_title(cityhighlight, loc='left')    
+            if (i % 2) == 0:
+                ax.set_ylabel('NO$_{2}$ [ppbv]')
+            ax.set_xlim(pd.to_datetime(['2018-01-01','2020-06-30']))
+            ax.set_xticks(['2018-01-01', '2018-03-01', 
+                '2018-05-01', '2018-07-01', '2018-09-01', '2018-11-01', 
+                '2019-01-01', '2019-03-01', '2019-05-01', '2019-07-01', '2019-09-01',
+                '2019-11-01', '2020-01-01', '2020-03-01', '2020-05-01']) 
+            ax.set_xticklabels([])
+            ax.set_ylim([0, maxlim])
+            if (i==2) or (i==3): 
+                ax.set_xticklabels(['Jan\n2018', '', 'May', '', 'Sep', '', 
+                    'Jan\n2019', '', 'May', '', 'Sep', '',
+                    'Jan\n2020', '', 'May'], fontsize=9) 
+            if i==3:
+                ax.legend(frameon=False, ncol=3, loc=3, fontsize=14, 
+                    bbox_to_anchor=(-1.2,-0.95))
+            i=i+1
+    # Remove blank axes
+    for i in np.arange(4,16,1):
+        axes[i].axis('off')     
+    plt.subplots_adjust(hspace=0.4, bottom=0.1, top=0.97)         
+    plt.savefig(DIR_FIG+'figS5b.pdf', dpi=1000)   
+    plt.show()
+    
+def figS6(features):
     """
     """
     fig, axs = plt.subplots(4, 4, figsize=(10.5,8.5))
@@ -1462,110 +1434,8 @@ def figS5(features):
     fig.text(0.06, 0.5, 'SHAP values for (observed - modeled) '+\
         'NO$_{\mathregular{2}}$', va='center', rotation='vertical', fontsize=16)
     plt.subplots_adjust(hspace=0.6, wspace=0.4, top=0.95, bottom=0.05)
-    plt.savefig(DIR_FIG+'figS5_revised.pdf', dpi=1000)
+    plt.savefig(DIR_FIG+'figS6.pdf', dpi=1000)
     return
-
-def figS6(): 
-    from dateutil.relativedelta import relativedelta
-    import scipy.odr
-    dno2, no2, diesel, cities = [], [], [], []
-    dno2dow = []
-    shapsdow_all, featuresdow_all, featuresdow_lon, shapsdow_lon = [], [], [], []
-    bcmdow = pd.DataFrame()
-    rawdow = pd.DataFrame()
-    # # Loop through cities and build bias-corrected model
-    for index, row in focuscities.iterrows():
-        city = row['City']    
-        gcf_city = modeldow.loc[modeldow['city']==city]
-        obs_city = obs.loc[obs['City']==city].copy(deep=True)
-        obs_city.loc[obs_city['Concentration']==0,'Concentration']= np.nan
-        std = np.nanstd(obs_city['Concentration'])
-        mean = np.nanmean(obs_city['Concentration'])
-        obs_city.loc[obs_city['Concentration']>mean+(3*std), 'Concentration'] = np.nan
-        qaqc = obs_city.loc[(obs_city['Date']>='2019-01-01') & 
-            (obs_city['Date']<='2019-12-31')]
-        if qaqc.shape[0] >= (365*0.65):
-            del gcf_city['city'], obs_city['City']
-            merged_train, bias_train, obs_conc_train = \
-                prepare_model_obs(obs_city, gcf_city, '2019-01-01', '2019-12-31')
-            merged_full, bias_full, obs_conc_full = \
-                prepare_model_obs(obs_city, gcf_city, '2019-01-01', '2020-06-30')
-            (no2diff, shaps, features, ro, fac2o, mfbo, rt, fac2t, mfbt, rv, fac2v, 
-                mfbv) = run_xgboost(args, merged_train, bias_train, merged_full, 
-                obs_conc_full)
-            shapsdow_all.append(shaps)
-            if city=='London C40':
-                shapsdow_lon.append(shaps)
-            bcm_city = no2diff.groupby(['Date']).mean().reset_index()
-            bcm_city['City'] = city
-            bcmdow = bcmdow.append(bcm_city, ignore_index=True)
-            raw_city = merged_full[['Date','NO2']].copy(deep=True)
-            raw_city['City'] = city
-            rawdow = rawdow.append(raw_city, ignore_index=True)
-    for index, row in focuscities.iterrows():
-        city = row['City']
-        bcm_city = bcm.loc[bcm['City']==city]
-        bcm_city.set_index('Date', inplace=True)
-        ldstart = focuscities.loc[focuscities['City']==city]['start'].values[0]
-        ldstart = pd.to_datetime(ldstart)
-        ldend = focuscities.loc[focuscities['City']==city]['end'].values[0]
-        ldend = pd.to_datetime(ldend)
-        before = np.nanmean(bcm_city.loc[ldstart-relativedelta(years=1):
-            ldend-relativedelta(years=1)]['predicted'])
-        after = np.abs(np.nanmean(bcm_city.loc[ldstart:ldend]['anomaly']))
-        pchange = -after/before*100
-        dno2.append(pchange)
-        no2.append(bcm_city['observed']['2019-01-01':'2019-12-31'].mean())
-        diesel.append(focuscities.loc[focuscities['City']==city]['Diesel share'].values[0])
-        cities.append(focuscities.loc[focuscities['City']==city]['City'].values[0])
-        bcm_city = bcmdow.loc[bcmdow['City']==city]
-        bcm_city.set_index('Date', inplace=True)
-        ldstart = focuscities.loc[focuscities['City']==city]['start'].values[0]
-        ldstart = pd.to_datetime(ldstart)
-        ldend = focuscities.loc[focuscities['City']==city]['end'].values[0]
-        ldend = pd.to_datetime(ldend)
-        before = np.nanmean(bcm_city.loc[ldstart-relativedelta(years=1):
-            ldend-relativedelta(years=1)]['predicted'])
-        after = np.abs(np.nanmean(bcm_city.loc[ldstart:ldend]['anomaly']))
-        pchange = -after/before*100
-        dno2dow.append(pchange)
-    dno2 = np.array(dno2)
-    dno2dow = np.array(dno2dow)
-    # Plotting 
-    fig, ax1 = plt.subplots(1)
-    ax1.plot(dno2, dno2dow, 'ko', clip_on=False)
-    # 1:1 line
-    ax1.plot(np.linspace(-70,1,1000), np.linspace(-70,1,1000), color='k', 
-        ls='-', lw=0.25, label='Identity line')
-    # Line of best fit 
-    idx = np.isfinite(dno2) & np.isfinite(dno2dow)
-    Model = scipy.odr.Model(fit_func)
-    odr = scipy.odr.RealData(dno2[idx], dno2dow[idx])
-    odr = scipy.odr.ODR(odr, Model,[np.polyfit(dno2[idx], dno2dow[idx], 1)[1],
-        np.polyfit(dno2[idx], dno2dow[idx], 1)[0]], maxit=10000)
-    slope, intercept, r_value, p_value, std_err = stats.linregress(
-        dno2[idx], dno2dow[idx])
-    output = odr.run() 
-    beta = output.beta
-    print(beta)
-    ax1.plot(np.linspace(-70, 0, 100), ((slope*np.linspace(-70, 0, 100))+intercept),
-        color='black', ls='dashed', lw=1, zorder=0, 
-        label='Linear fit (y=ax+b)\na=0.92, b=-6.30')    
-    txtstr = 'r = %.2f\np-value = %.2f'%(r_value, p_value)
-    ax1.text(-67, -8, txtstr, color='darkgrey', ha='left')
-    ax1.set_xlim([-70, 0])
-    ax1.set_ylim([-70, 0])
-    ax1.set_xticks(np.arange(-70,10,10))
-    ax1.set_yticks(np.arange(-70,10,10))
-    ax1.legend(frameon=False, loc=9, bbox_to_anchor=(0.5, 1.16), ncol=2)
-    ax1.set_xlabel('$\mathregular{\Delta}$ NO$_{\mathregular{2}}$ [%]\n'+
-        '(traffic characterized by Apple Mobility Trends\nReports)', loc='left')
-    ax1.set_ylabel('$\mathregular{\Delta}$ NO$_{\mathregular{2}}$ [%]\n'+
-        '(traffic characterized by day of week)', loc='bottom')
-    plt.subplots_adjust(bottom=0.2, left=0.2)
-    plt.savefig(DIR_FIG+'figS6_revised.pdf', dpi=1000)
-    return 
-
 
 def figS7(): 
     """
@@ -1663,7 +1533,7 @@ def figS7():
                     bbox_to_anchor=(-1.2,-0.95))
             i=i+1
     plt.subplots_adjust(hspace=0.4, bottom=0.1, top=0.97)
-    plt.savefig(DIR_FIG+'figS7a_revised.pdf', dpi=1000)
+    plt.savefig(DIR_FIG+'figS7a.pdf', dpi=1000)
     plt.show()
     # Rest of cities
     fig, axes = plt.subplots(figsize=(8.5, 11), nrows=8, ncols=2) 
@@ -1743,413 +1613,512 @@ def figS7():
     for i in np.arange(5,16,1):
         axes[i].axis('off')
     plt.subplots_adjust(hspace=0.4, bottom=0.1, top=0.97)
-    plt.savefig(DIR_FIG+'figS7b_revised.pdf', dpi=1000)
+    plt.savefig(DIR_FIG+'figS7b.pdf', dpi=1000)
     plt.show()
     return 
 
-# def figS6(obs):
-#     """
-#     """    
-#     from sklearn.metrics import mean_squared_error
-#     import math
-#     from scipy.optimize import curve_fit
-#     import numpy as np
-#     import pandas as pd
-#     import matplotlib.pyplot as plt
-#     import matplotlib as mpl
-#     from dateutil.relativedelta import relativedelta
-#     from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-#     import scipy.odr    
-#     from scipy import stats
-    
-#     # Add additional C40 cities and calculate city-wide averages
-#     obs_los = readc40aq.read_losangeles('NO2', '2018-01-01', '2020-12-31')
-#     coordstemp = obs_los.groupby(['Longitude','Latitude']).size().reset_index()
-#     coordstemp['City'] = 'Los Angeles C40'
-#     coordstemp.rename({0:'Count'}, axis=1, inplace=True)
-#     stationcoords.append(coordstemp)
-#     obs_los = obs_los.groupby(by=['Date']).agg({
-#         'Concentration':'mean', 'Latitude':'mean',
-#         'Longitude':'mean', 'City':'first'}).reset_index()
-#     obs_mex = readc40aq.read_mexicocity('NO2', '2018-01-01', '2020-12-31')
-#     coordstemp = obs_mex.groupby(['Longitude','Latitude']).size().reset_index()
-#     coordstemp['City'] = 'Mexico City C40'
-#     coordstemp.rename({0:'Count'}, axis=1, inplace=True)
-#     stationcoords.append(coordstemp)
-#     obs_mex = obs_mex.groupby(by=['Date']).agg({
-#         'Concentration':'mean', 'Latitude':'mean',
-#         'Longitude':'mean', 'City':'first'}).reset_index()
-#     obs_san = readc40aq.read_santiago('NO2', '2018-01-01', '2020-12-31')
-#     coordstemp = obs_san.groupby(['Longitude','Latitude']).size().reset_index()
-#     coordstemp['City'] = 'Santiago C40'
-#     coordstemp.rename({0:'Count'}, axis=1, inplace=True)
-#     stationcoords.append(coordstemp)
-#     obs_san = obs_san.groupby(by=['Date']).agg({
-#         'Concentration':'mean', 'Latitude':'mean',
-#         'Longitude':'mean', 'City':'first'}).reset_index()
-#     obs_ber = readc40aq.read_berlin('NO2', '2019-01-01', '2020-12-31')
-#     coordstemp = obs_ber.groupby(['Longitude','Latitude']).size().reset_index()
-#     coordstemp['City'] = 'Berlin C40'
-#     coordstemp.rename({0:'Count'}, axis=1, inplace=True)
-#     stationcoords.append(coordstemp)
-#     obs_ber = obs_ber.groupby(by=['Date']).agg({
-#         'Concentration':'mean', 'Latitude':'mean',
-#         'Longitude':'mean', 'City':'first'}).reset_index()
-#     obs_auc = readc40aq.read_auckland('NO2', '2019-01-01', '2020-12-31')
-#     coordstemp = obs_auc.groupby(['Longitude','Latitude']).size().reset_index()
-#     coordstemp['City'] = 'Auckland C40'
-#     coordstemp.rename({0:'Count'}, axis=1, inplace=True)
-#     stationcoords.append(coordstemp)
-#     obs_auc = obs_auc.groupby(by=['Date']).agg({
-#         'Concentration':'mean', 'Latitude':'mean',
-#         'Longitude':'mean', 'City':'first'}).reset_index()
-#     # Combine observations
-#     obs_withc40 = obs.copy(deep=True)
-#     obs_withc40 = obs_withc40.append(obs_los, ignore_index=False)
-#     obs_withc40 = obs_withc40.append(obs_mex, ignore_index=False)
-#     obs_withc40 = obs_withc40.append(obs_san, ignore_index=False)
-#     obs_withc40 = obs_withc40.append(obs_auc, ignore_index=False)
-#     focuscities_withc40 = build_focuscities(False)
-#     # Recalculate bias-corrected model 
-#     bcm_withc40 = pd.DataFrame()
-#     raw_withc40 = pd.DataFrame()
-#     # # Loop through cities and build bias-corrected model
-#     for index, row in focuscities_withc40.iterrows():
-#         city = row['City']    
-#         print(city)    
-#         # Select city in model/observational dataset
-#         gcf_city = model.loc[model['city']==city]
-#         obs_city = obs_withc40.loc[obs_withc40['City']==city].copy(deep=True)
-#         # There are some cities (e.g., Brussels) with observations equal to 0 ppb
-#         # that appear to just be missing data. Change these to NaN!
-#         obs_city.loc[obs_city['Concentration']==0,'Concentration']= np.nan
-#         # QA/QC: Require that year 2019 has at least 65% of observations for 
-#         # a given city; remove observations +/- 3 standard deviations 
-#         std = np.nanstd(obs_city['Concentration'])
-#         mean = np.nanmean(obs_city['Concentration'])
-#         obs_city.loc[obs_city['Concentration']>mean+(3*std), 'Concentration'] = np.nan
-#         qaqc = obs_city.loc[(obs_city['Date']>='2019-01-01') & 
-#             (obs_city['Date']<='2019-12-31')]
-#         if qaqc.shape[0] >= (365*0.65):
-#             # Remove city column otherwise XGBoost will throw a ValueError (i.e., 
-#             # DataFrame.dtypes for data must be int, float, bool or categorical.  
-#             # When categorical type is supplied, DMatrix parameter 
-#             # `enable_categorical` must be set to `True`.city)    
-#             del gcf_city['city'], obs_city['City']
-#             # Run XGBoost for site
-#             merged_train, bias_train, obs_conc_train = \
-#                 prepare_model_obs(obs_city, gcf_city, '2019-01-01', '2019-12-31')
-#             merged_full, bias_full, obs_conc_full = \
-#                 prepare_model_obs(obs_city, gcf_city, '2019-01-01', '2020-06-30')
-#             (no2diff, shaps, features, ro, fac2o, mfbo, rt, fac2t, mfbt, rv, fac2v, 
-#                 mfbv) = run_xgboost(args, merged_train, bias_train, merged_full, 
-#                 obs_conc_full)
-#             # Group data by date and average over all k-fold predictions
-#             bcm_city = no2diff.groupby(['Date']).mean().reset_index()
-#             # Add column corresponding to city name for each ID
-#             bcm_city['City'] = city
-#             bcm_withc40 = bcm_withc40.append(bcm_city, ignore_index=True)
-#             # Save off raw (non bias-corrected) observations
-#             raw_city = merged_full[['Date','NO2']].copy(deep=True)
-#             raw_city['City'] = city
-#             raw_withc40 = raw_withc40.append(raw_city, ignore_index=True)
-#         else:
-#             print('Skipping %s...'%city)
-#     dno2, no2, diesel, cities = [], [], [], []
-#     for index, row in focuscities_withc40.iterrows():
-#         city = row['City']
-#         print(city)
-#         bcm_city = bcm_withc40.loc[bcm_withc40['City']==city]
-#         bcm_city.set_index('Date', inplace=True)
-#         before = np.nanmean(bcm_city.loc[(
-#             pd.to_datetime('2020-03-15')-relativedelta(years=1)):
-#             (pd.to_datetime('2020-06-15')-relativedelta(years=1))]['predicted'])
-#         after = np.abs(np.nanmean(bcm_city.loc['2020-03-15':'2020-06-15']['anomaly']))
-#         pchange = -after/before*100
-#         # Save output
-#         dno2.append(pchange)
-#         no2.append(bcm_city['observed']['2019-01-01':'2019-12-31'].mean())
-#         diesel.append(focuscities_withc40.loc[focuscities_withc40['City']==city]['Diesel share'].values[0])
-#         cities.append(focuscities_withc40.loc[focuscities_withc40['City']==city]['City'].values[0])
-#     diesel = np.array(diesel)
-#     cities = np.array(cities)
-#     no2 = np.array(no2)
-#     dno2 = np.array(dno2)
-#     # Create custom colormap
-#     cmap = plt.get_cmap("pink_r")
-#     cmap = truncate_colormap(cmap, 0.4, 0.9)
-#     cmaplist = [cmap(i) for i in range(cmap.N)]
-#     cmap = mpl.colors.LinearSegmentedColormap.from_list('Custom cmap', 
-#         cmaplist, cmap.N)
-#     cmap.set_over(color='k')
-#     bounds = np.linspace(8, 20, 7)
-#     norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
-#     # Plotting
-#     fig = plt.figure(figsize=(6,4))
-#     ax1 = plt.subplot2grid((1,1),(0,0))
-#     mb = ax1.scatter(diesel, dno2, c=no2, s=18, cmap=cmap, norm=norm, 
-#         clip_on=False)
-#     ax1.set_xlabel(r'Diesel-powered passenger vehicle share [%]')
-#     ax1.set_ylabel(r'$\mathregular{\Delta}$ NO$_{\mathregular{2}}$ [%]')
-#     # Calculate slope with total least squares (ODR)
-#     idx = np.isfinite(diesel) & np.isfinite(dno2)
-#     slope, intercept, r_value, p_value, std_err = stats.linregress(
-#         diesel[idx], dno2[idx])
-#     lincoeff = np.poly1d(np.polyfit(diesel[idx], dno2[idx], 1))
-#     print('Equation coefficients should match the following:')
-#     print(lincoeff)
-#     ax1.plot(np.unique(diesel[idx]), np.poly1d(np.polyfit(diesel[idx], 
-#         dno2[idx], 1))(np.unique(diesel[idx])), 'black', ls='dashed', lw=1, 
-#         zorder=0, label='Linear fit (y=ax+b)\na=-0.40, b=-8.91')
-#     # ax1.legend(frameon=False, loc=9, bbox_to_anchor=(0.5, 1.16), ncol=2)
-#     ax1.legend(frameon=False, bbox_to_anchor=(0.4, 0.42))
-#     axins1 = inset_axes(ax1, width='40%', height='5%', loc='lower left', 
-#         bbox_to_anchor=(0.02, 0.04, 1, 1), bbox_transform=ax1.transAxes,
-#         borderpad=0)
-#     fig.colorbar(mb, cax=axins1, orientation="horizontal", extend='both', 
-#         label='NO$_{\mathregular{2}}$ [ppbv]')
-#     axins1.xaxis.set_ticks_position('top')
-#     axins1.xaxis.set_label_position('top')
-#     ax1.tick_params(labelsize=9)
-#     ax1.set_xlim([-1,71])
-#     ax1.set_ylim([-65,5])
-#     # Calculate r, RMSE for linear vs. power fit
-#     # dno2_sorted = sort_list(dno2, diesel)
-#     # linfit = fit_func(beta, np.sort(diesel))
-#     # powerfit = func(np.sort(diesel), *popt)
-#     # print('Equation coefficients should match the following:')
-#     # print('Linear: ', beta)
-#     # print('Exponential: ', popt)
-#     print('Linear correlation between diesel and dNO2=', r_value)
-#     print('p-value=',p_value)
-#     # print('RMSE for linear fit...', math.sqrt(mean_squared_error(dno2_sorted, 
-#     #     linfit)))
-#     # print('Correlation for linear fit...', np.corrcoef(dno2_sorted, 
-#     #     linfit)[0,1])
-#     # print('RMSE for exponential fit...', math.sqrt(mean_squared_error(dno2_sorted, 
-#     #     powerfit)))
-#     for i, txt in enumerate(cities):
-#         if txt == 'Santiago C40':
-#             txt = 'Santiago'
-#         elif txt == 'Mexico City C40':
-#             txt = 'Mexico City'
-#         elif txt == 'Los Angeles C40':
-#             txt = 'Los Angeles'
-#         elif txt == 'Berlin C40':
-#             txt = 'Berlin'
-#         elif txt == 'Milan C40':
-#             txt = 'Milan'
-#         elif txt == 'London C40':
-#             txt = 'London'
-#         elif txt == 'Auckland C40':
-#             txt = 'Auckland'        
-#         ax1.annotate(txt, (diesel[i]+1, dno2[i]+1), fontsize=9)
-#     plt.savefig(DIR_FIG+'figS6_citynames_eu.png', dpi=1000)    
-#     # plt.savefig(DIR_FIG+'figS6_eu', dpi=1000)
-#     return
+def figS8(): 
+    from dateutil.relativedelta import relativedelta
+    import scipy.odr
+    dno2, no2, diesel, cities = [], [], [], []
+    dno2dow = []
+    shapsdow_all, featuresdow_all, featuresdow_lon, shapsdow_lon = [], [], [], []
+    bcmdow = pd.DataFrame()
+    rawdow = pd.DataFrame()
+    # # Loop through cities and build bias-corrected model
+    for index, row in focuscities.iterrows():
+        city = row['City']    
+        gcf_city = modeldow.loc[modeldow['city']==city]
+        obs_city = obs.loc[obs['City']==city].copy(deep=True)
+        obs_city.loc[obs_city['Concentration']==0,'Concentration']= np.nan
+        std = np.nanstd(obs_city['Concentration'])
+        mean = np.nanmean(obs_city['Concentration'])
+        obs_city.loc[obs_city['Concentration']>mean+(3*std), 'Concentration'] = np.nan
+        qaqc = obs_city.loc[(obs_city['Date']>='2019-01-01') & 
+            (obs_city['Date']<='2019-12-31')]
+        if qaqc.shape[0] >= (365*0.65):
+            del gcf_city['city'], obs_city['City']
+            merged_train, bias_train, obs_conc_train = \
+                prepare_model_obs(obs_city, gcf_city, '2019-01-01', '2019-12-31')
+            merged_full, bias_full, obs_conc_full = \
+                prepare_model_obs(obs_city, gcf_city, '2019-01-01', '2020-06-30')
+            (no2diff, shaps, features, ro, fac2o, mfbo, rt, fac2t, mfbt, rv, fac2v, 
+                mfbv) = run_xgboost(args, merged_train, bias_train, merged_full, 
+                obs_conc_full)
+            shapsdow_all.append(shaps)
+            if city=='London C40':
+                shapsdow_lon.append(shaps)
+            bcm_city = no2diff.groupby(['Date']).mean().reset_index()
+            bcm_city['City'] = city
+            bcmdow = bcmdow.append(bcm_city, ignore_index=True)
+            raw_city = merged_full[['Date','NO2']].copy(deep=True)
+            raw_city['City'] = city
+            rawdow = rawdow.append(raw_city, ignore_index=True)
+    for index, row in focuscities.iterrows():
+        city = row['City']
+        bcm_city = bcm.loc[bcm['City']==city]
+        bcm_city.set_index('Date', inplace=True)
+        ldstart = focuscities.loc[focuscities['City']==city]['start'].values[0]
+        ldstart = pd.to_datetime(ldstart)
+        ldend = focuscities.loc[focuscities['City']==city]['end'].values[0]
+        ldend = pd.to_datetime(ldend)
+        before = np.nanmean(bcm_city.loc[ldstart-relativedelta(years=1):
+            ldend-relativedelta(years=1)]['predicted'])
+        after = np.abs(np.nanmean(bcm_city.loc[ldstart:ldend]['anomaly']))
+        pchange = -after/before*100
+        dno2.append(pchange)
+        no2.append(bcm_city['observed']['2019-01-01':'2019-12-31'].mean())
+        diesel.append(focuscities.loc[focuscities['City']==city]['Diesel share'].values[0])
+        cities.append(focuscities.loc[focuscities['City']==city]['City'].values[0])
+        bcm_city = bcmdow.loc[bcmdow['City']==city]
+        bcm_city.set_index('Date', inplace=True)
+        ldstart = focuscities.loc[focuscities['City']==city]['start'].values[0]
+        ldstart = pd.to_datetime(ldstart)
+        ldend = focuscities.loc[focuscities['City']==city]['end'].values[0]
+        ldend = pd.to_datetime(ldend)
+        before = np.nanmean(bcm_city.loc[ldstart-relativedelta(years=1):
+            ldend-relativedelta(years=1)]['predicted'])
+        after = np.abs(np.nanmean(bcm_city.loc[ldstart:ldend]['anomaly']))
+        pchange = -after/before*100
+        dno2dow.append(pchange)
+    dno2 = np.array(dno2)
+    dno2dow = np.array(dno2dow)
+    # Plotting 
+    fig, ax1 = plt.subplots(1)
+    ax1.plot(dno2, dno2dow, 'ko', clip_on=False)
+    # 1:1 line
+    ax1.plot(np.linspace(-70,1,1000), np.linspace(-70,1,1000), color='k', 
+        ls='-', lw=0.25, label='Identity line')
+    # Line of best fit 
+    idx = np.isfinite(dno2) & np.isfinite(dno2dow)
+    Model = scipy.odr.Model(fit_func)
+    odr = scipy.odr.RealData(dno2[idx], dno2dow[idx])
+    odr = scipy.odr.ODR(odr, Model,[np.polyfit(dno2[idx], dno2dow[idx], 1)[1],
+        np.polyfit(dno2[idx], dno2dow[idx], 1)[0]], maxit=10000)
+    slope, intercept, r_value, p_value, std_err = stats.linregress(
+        dno2[idx], dno2dow[idx])
+    output = odr.run() 
+    beta = output.beta
+    print(beta)
+    ax1.plot(np.linspace(-70, 0, 100), ((slope*np.linspace(-70, 0, 100))+intercept),
+        color='black', ls='dashed', lw=1, zorder=0, 
+        label='Linear fit (y=ax+b)\na=0.92, b=-6.30')    
+    txtstr = 'r = %.2f\np-value = %.2f'%(r_value, p_value)
+    ax1.text(-67, -8, txtstr, color='darkgrey', ha='left')
+    ax1.set_xlim([-70, 0])
+    ax1.set_ylim([-70, 0])
+    ax1.set_xticks(np.arange(-70,10,10))
+    ax1.set_yticks(np.arange(-70,10,10))
+    ax1.legend(frameon=False, loc=9, bbox_to_anchor=(0.5, 1.16), ncol=2)
+    ax1.set_xlabel('$\mathregular{\Delta}$ NO$_{\mathregular{2}}$ [%]\n'+
+        '(traffic characterized by Apple Mobility Trends\nReports)', loc='left')
+    ax1.set_ylabel('$\mathregular{\Delta}$ NO$_{\mathregular{2}}$ [%]\n'+
+        '(traffic characterized by day of week)', loc='bottom')
+    plt.subplots_adjust(bottom=0.2, left=0.2)
+    plt.savefig(DIR_FIG+'figS8.pdf', dpi=1000)
+    return 
 
-# def figS7(obs):
-#     """
-#     """
-#     from sklearn.metrics import mean_squared_error
-#     import math
-#     from scipy.optimize import curve_fit
-#     import numpy as np
-#     import pandas as pd
-#     import matplotlib.pyplot as plt
-#     import matplotlib as mpl
-#     from dateutil.relativedelta import relativedelta
-#     from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-#     import scipy.odr    
-#     from scipy import stats
+def figS9(obs):
+    """
+    """    
+    from sklearn.metrics import mean_squared_error
+    import math
+    from scipy.optimize import curve_fit
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    import matplotlib as mpl
+    from dateutil.relativedelta import relativedelta
+    from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+    import scipy.odr    
+    from scipy import stats
     
-#     # Add additional C40 cities and calculate city-wide averages
-#     obs_los = readc40aq.read_losangeles('NO2', '2018-01-01', '2020-12-31')
-#     coordstemp = obs_los.groupby(['Longitude','Latitude']).size().reset_index()
-#     coordstemp['City'] = 'Los Angeles C40'
-#     coordstemp.rename({0:'Count'}, axis=1, inplace=True)
-#     stationcoords.append(coordstemp)
-#     obs_los = obs_los.groupby(by=['Date']).agg({
-#         'Concentration':'mean', 'Latitude':'mean',
-#         'Longitude':'mean', 'City':'first'}).reset_index()
-#     obs_mex = readc40aq.read_mexicocity('NO2', '2018-01-01', '2020-12-31')
-#     coordstemp = obs_mex.groupby(['Longitude','Latitude']).size().reset_index()
-#     coordstemp['City'] = 'Mexico City C40'
-#     coordstemp.rename({0:'Count'}, axis=1, inplace=True)
-#     stationcoords.append(coordstemp)
-#     obs_mex = obs_mex.groupby(by=['Date']).agg({
-#         'Concentration':'mean', 'Latitude':'mean',
-#         'Longitude':'mean', 'City':'first'}).reset_index()
-#     obs_san = readc40aq.read_santiago('NO2', '2018-01-01', '2020-12-31')
-#     coordstemp = obs_san.groupby(['Longitude','Latitude']).size().reset_index()
-#     coordstemp['City'] = 'Santiago C40'
-#     coordstemp.rename({0:'Count'}, axis=1, inplace=True)
-#     stationcoords.append(coordstemp)
-#     obs_san = obs_san.groupby(by=['Date']).agg({
-#         'Concentration':'mean', 'Latitude':'mean',
-#         'Longitude':'mean', 'City':'first'}).reset_index()
-#     obs_ber = readc40aq.read_berlin('NO2', '2019-01-01', '2020-12-31')
-#     coordstemp = obs_ber.groupby(['Longitude','Latitude']).size().reset_index()
-#     coordstemp['City'] = 'Berlin C40'
-#     coordstemp.rename({0:'Count'}, axis=1, inplace=True)
-#     stationcoords.append(coordstemp)
-#     obs_ber = obs_ber.groupby(by=['Date']).agg({
-#         'Concentration':'mean', 'Latitude':'mean',
-#         'Longitude':'mean', 'City':'first'}).reset_index()
-#     obs_auc = readc40aq.read_auckland('NO2', '2019-01-01', '2020-12-31')
-#     coordstemp = obs_auc.groupby(['Longitude','Latitude']).size().reset_index()
-#     coordstemp['City'] = 'Auckland C40'
-#     coordstemp.rename({0:'Count'}, axis=1, inplace=True)
-#     stationcoords.append(coordstemp)
-#     obs_auc = obs_auc.groupby(by=['Date']).agg({
-#         'Concentration':'mean', 'Latitude':'mean',
-#         'Longitude':'mean', 'City':'first'}).reset_index()
-#     # Combine observations
-#     obs_withc40 = obs.copy(deep=True)
-#     obs_withc40 = obs_withc40.append(obs_los, ignore_index=False)
-#     obs_withc40 = obs_withc40.append(obs_mex, ignore_index=False)
-#     obs_withc40 = obs_withc40.append(obs_san, ignore_index=False)
-#     obs_withc40 = obs_withc40.append(obs_auc, ignore_index=False)
-#     focuscities_withc40 = build_focuscities(False)
-#     # Recalculate bias-corrected model 
-#     bcm_withc40 = pd.DataFrame()
-#     raw_withc40 = pd.DataFrame()
-#     # # Loop through cities and build bias-corrected model
-#     for index, row in focuscities_withc40.iterrows():
-#         city = row['City']    
-#         print(city)    
-#         # Select city in model/observational dataset
-#         gcf_city = model.loc[model['city']==city]
-#         obs_city = obs_withc40.loc[obs_withc40['City']==city].copy(deep=True)
-#         # There are some cities (e.g., Brussels) with observations equal to 0 ppb
-#         # that appear to just be missing data. Change these to NaN!
-#         obs_city.loc[obs_city['Concentration']==0,'Concentration']= np.nan
-#         # QA/QC: Require that year 2019 has at least 65% of observations for 
-#         # a given city; remove observations +/- 3 standard deviations 
-#         std = np.nanstd(obs_city['Concentration'])
-#         mean = np.nanmean(obs_city['Concentration'])
-#         obs_city.loc[obs_city['Concentration']>mean+(3*std), 'Concentration'] = np.nan
-#         qaqc = obs_city.loc[(obs_city['Date']>='2019-01-01') & 
-#             (obs_city['Date']<='2019-12-31')]
-#         if qaqc.shape[0] >= (365*0.65):
-#             # Remove city column otherwise XGBoost will throw a ValueError (i.e., 
-#             # DataFrame.dtypes for data must be int, float, bool or categorical.  
-#             # When categorical type is supplied, DMatrix parameter 
-#             # `enable_categorical` must be set to `True`.city)    
-#             del gcf_city['city'], obs_city['City']
-#             # Run XGBoost for site
-#             merged_train, bias_train, obs_conc_train = \
-#                 prepare_model_obs(obs_city, gcf_city, '2019-01-01', '2019-12-31')
-#             merged_full, bias_full, obs_conc_full = \
-#                 prepare_model_obs(obs_city, gcf_city, '2019-01-01', '2020-06-30')
-#             (no2diff, shaps, features, ro, fac2o, mfbo, rt, fac2t, mfbt, rv, fac2v, 
-#                 mfbv) = run_xgboost(args, merged_train, bias_train, merged_full, 
-#                 obs_conc_full)
-#             # Group data by date and average over all k-fold predictions
-#             bcm_city = no2diff.groupby(['Date']).mean().reset_index()
-#             # Add column corresponding to city name for each ID
-#             bcm_city['City'] = city
-#             bcm_withc40 = bcm_withc40.append(bcm_city, ignore_index=True)
-#             # Save off raw (non bias-corrected) observations
-#             raw_city = merged_full[['Date','NO2']].copy(deep=True)
-#             raw_city['City'] = city
-#             raw_withc40 = raw_withc40.append(raw_city, ignore_index=True)
-#         else:
-#             print('Skipping %s...'%city)
-#     dno2, no2, diesel, cities = [], [], [], []
-#     for index, row in focuscities_withc40.iterrows():
-#         city = row['City']
-#         print(city)
-#         bcm_city = bcm_withc40.loc[bcm_withc40['City']==city]
-#         bcm_city.set_index('Date', inplace=True)
-#         # Figure out REQUIRED lockdown dates
-#         ldstart = focuscities_withc40.loc[focuscities_withc40['City']==
-#             city]['startreq'].values[0]
-#         ldstart = pd.to_datetime(ldstart)
-#         ldend = focuscities_withc40.loc[focuscities_withc40['City']==city][
-#             'endreq'].values[0]
-#         ldend = pd.to_datetime(ldend)
-#         if pd.isnull(ldstart)==False:
-#             before = np.nanmean(bcm_city.loc[ldstart-relativedelta(years=1):
-#                 ldend-relativedelta(years=1)]['predicted'])
-#             after = np.abs(np.nanmean(bcm_city.loc[ldstart:ldend]['anomaly']))
-#             pchange = -after/before*100
-#             dno2.append(pchange)
-#         else: 
-#             dno2.append(np.nan)
-#         no2.append(bcm_city['observed']['2019-01-01':'2019-12-31'].mean())
-#         diesel.append(focuscities_withc40.loc[focuscities_withc40['City']==city]['Diesel share'].values[0])
-#         cities.append(focuscities_withc40.loc[focuscities_withc40['City']==city]['City'].values[0])
-#     diesel = np.array(diesel)
-#     cities = np.array(cities)
-#     no2 = np.array(no2)
-#     dno2 = np.array(dno2)
-#     cmap = plt.get_cmap("pink_r")
-#     cmap = truncate_colormap(cmap, 0.4, 0.9)
-#     cmaplist = [cmap(i) for i in range(cmap.N)]
-#     cmap = mpl.colors.LinearSegmentedColormap.from_list('Custom cmap', 
-#         cmaplist, cmap.N)
-#     cmap.set_over(color='k')
-#     bounds = np.linspace(8, 20, 7)
-#     norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
-#     # Plotting
-#     fig = plt.figure(figsize=(6,4))
-#     ax1 = plt.subplot2grid((1,1),(0,0))
-#     mb = ax1.scatter(diesel, dno2, c=no2, s=18, cmap=cmap, norm=norm, 
-#         clip_on=False)
-#     # Cities exceeding WHO guidelines
-#     ax1.set_xlabel(r'Diesel-powered passenger vehicle share [%]')
-#     ax1.set_ylabel(r'$\mathregular{\Delta}$ NO$_{\mathregular{2}}$ [%]')
-#     # Calculate slope with least squares regression
-#     idx = np.isfinite(dno2) & np.isfinite(diesel)
-#     lincoeff = np.poly1d(np.polyfit(diesel[idx], dno2[idx], 1))
-#     ax1.plot(np.unique(diesel), np.poly1d(np.polyfit(diesel[idx], dno2[idx], 1)
-#         )(np.unique(diesel)), 'black', ls='dashed', lw=1, zorder=0, 
-#         label='Linear fit (y=ax+b)\na=-0.52, b=-8.81')    
-#     slope, intercept, r_value, p_value, std_err = stats.linregress(
-#         diesel[idx], dno2[idx])
-#     # ax1.legend(frameon=False, loc=9, bbox_to_anchor=(0.5, 1.16), ncol=2)
-#     ax1.legend(frameon=False, bbox_to_anchor=(0.4, 0.42))
-#     axins1 = inset_axes(ax1, width='40%', height='5%', loc='lower left', 
-#         bbox_to_anchor=(0.02, 0.04, 1, 1), bbox_transform=ax1.transAxes,
-#         borderpad=0)
-#     fig.colorbar(mb, cax=axins1, orientation="horizontal", extend='both', 
-#         label='NO$_{\mathregular{2}}$ [ppbv]')
-#     axins1.xaxis.set_ticks_position('top')
-#     axins1.xaxis.set_label_position('top')
-#     ax1.tick_params(labelsize=9)
-#     ax1.set_xlim([-1,71])
-#     ax1.set_ylim([-70,5])
-#     # Calculate r, RMSE for linear vs. power fit
-#     dno2_sorted = sort_list(dno2, diesel)
-#     dno2_sorted = np.array(dno2_sorted)
-#     print('Equation coefficients should match the following:')
-#     print('Linear: ', lincoeff)
-#     print('Linear correlation between diesel and dNO2=', r_value)
-#     print('p-value=',p_value)
-#     # print('RMSE for linear fit...', math.sqrt(mean_squared_error(
-#     #     dno2_sorted[idx2], linfit)))
-#     # for i, txt in enumerate(cities):
-#     #     if txt == 'Santiago C40':
-#     #         txt = 'Santiago'
-#     #     elif txt == 'Mexico City C40':
-#     #         txt = 'Mexico City'
-#     #     elif txt == 'Los Angeles C40':
-#     #         txt = 'Los Angeles'
-#     #     elif txt == 'Berlin C40':
-#     #         txt = 'Berlin'
-#     #     elif txt == 'Milan C40':
-#     #         txt = 'Milan'
-#     #     elif txt == 'London C40':
-#     #         txt = 'London'
-#     #     elif txt == 'Auckland C40':
-#     #         txt = 'Auckland'
-#     #     ax1.annotate(txt, (diesel[i]+1, dno2[i]+1), fontsize=9)
-#     #  plt.savefig(DIR_FIG+'figS7_citynames_eu.png', dpi=1000)    
-#     # plt.savefig(DIR_FIG+'figS7_eu.png', dpi=1000)
-#     return
+    # Add additional C40 cities and calculate city-wide averages
+    obs_los = readc40aq.read_losangeles('NO2', '2018-01-01', '2020-12-31')
+    coordstemp = obs_los.groupby(['Longitude','Latitude']).size().reset_index()
+    coordstemp['City'] = 'Los Angeles C40'
+    coordstemp.rename({0:'Count'}, axis=1, inplace=True)
+    stationcoords.append(coordstemp)
+    obs_los = obs_los.groupby(by=['Date']).agg({
+        'Concentration':'mean', 'Latitude':'mean',
+        'Longitude':'mean', 'City':'first'}).reset_index()
+    obs_mex = readc40aq.read_mexicocity('NO2', '2018-01-01', '2020-12-31')
+    coordstemp = obs_mex.groupby(['Longitude','Latitude']).size().reset_index()
+    coordstemp['City'] = 'Mexico City C40'
+    coordstemp.rename({0:'Count'}, axis=1, inplace=True)
+    stationcoords.append(coordstemp)
+    obs_mex = obs_mex.groupby(by=['Date']).agg({
+        'Concentration':'mean', 'Latitude':'mean',
+        'Longitude':'mean', 'City':'first'}).reset_index()
+    obs_san = readc40aq.read_santiago('NO2', '2018-01-01', '2020-12-31')
+    coordstemp = obs_san.groupby(['Longitude','Latitude']).size().reset_index()
+    coordstemp['City'] = 'Santiago C40'
+    coordstemp.rename({0:'Count'}, axis=1, inplace=True)
+    stationcoords.append(coordstemp)
+    obs_san = obs_san.groupby(by=['Date']).agg({
+        'Concentration':'mean', 'Latitude':'mean',
+        'Longitude':'mean', 'City':'first'}).reset_index()
+    obs_ber = readc40aq.read_berlin('NO2', '2019-01-01', '2020-12-31')
+    coordstemp = obs_ber.groupby(['Longitude','Latitude']).size().reset_index()
+    coordstemp['City'] = 'Berlin C40'
+    coordstemp.rename({0:'Count'}, axis=1, inplace=True)
+    stationcoords.append(coordstemp)
+    obs_ber = obs_ber.groupby(by=['Date']).agg({
+        'Concentration':'mean', 'Latitude':'mean',
+        'Longitude':'mean', 'City':'first'}).reset_index()
+    obs_auc = readc40aq.read_auckland('NO2', '2019-01-01', '2020-12-31')
+    coordstemp = obs_auc.groupby(['Longitude','Latitude']).size().reset_index()
+    coordstemp['City'] = 'Auckland C40'
+    coordstemp.rename({0:'Count'}, axis=1, inplace=True)
+    stationcoords.append(coordstemp)
+    obs_auc = obs_auc.groupby(by=['Date']).agg({
+        'Concentration':'mean', 'Latitude':'mean',
+        'Longitude':'mean', 'City':'first'}).reset_index()
+    # Combine observations
+    obs_withc40 = obs.copy(deep=True)
+    obs_withc40 = obs_withc40.append(obs_los, ignore_index=False)
+    obs_withc40 = obs_withc40.append(obs_mex, ignore_index=False)
+    obs_withc40 = obs_withc40.append(obs_san, ignore_index=False)
+    obs_withc40 = obs_withc40.append(obs_auc, ignore_index=False)
+    focuscities_withc40 = build_focuscities(False)
+    # Recalculate bias-corrected model 
+    bcm_withc40 = pd.DataFrame()
+    raw_withc40 = pd.DataFrame()
+    # # Loop through cities and build bias-corrected model
+    for index, row in focuscities_withc40.iterrows():
+        city = row['City']    
+        print(city)    
+        # Select city in model/observational dataset
+        gcf_city = model.loc[model['city']==city]
+        obs_city = obs_withc40.loc[obs_withc40['City']==city].copy(deep=True)
+        # There are some cities (e.g., Brussels) with observations equal to 0 ppb
+        # that appear to just be missing data. Change these to NaN!
+        obs_city.loc[obs_city['Concentration']==0,'Concentration']= np.nan
+        # QA/QC: Require that year 2019 has at least 65% of observations for 
+        # a given city; remove observations +/- 3 standard deviations 
+        std = np.nanstd(obs_city['Concentration'])
+        mean = np.nanmean(obs_city['Concentration'])
+        obs_city.loc[obs_city['Concentration']>mean+(3*std), 'Concentration'] = np.nan
+        qaqc = obs_city.loc[(obs_city['Date']>='2019-01-01') & 
+            (obs_city['Date']<='2019-12-31')]
+        if qaqc.shape[0] >= (365*0.65):
+            # Remove city column otherwise XGBoost will throw a ValueError (i.e., 
+            # DataFrame.dtypes for data must be int, float, bool or categorical.  
+            # When categorical type is supplied, DMatrix parameter 
+            # `enable_categorical` must be set to `True`.city)    
+            del gcf_city['city'], obs_city['City']
+            # Run XGBoost for site
+            merged_train, bias_train, obs_conc_train = \
+                prepare_model_obs(obs_city, gcf_city, '2019-01-01', '2019-12-31')
+            merged_full, bias_full, obs_conc_full = \
+                prepare_model_obs(obs_city, gcf_city, '2019-01-01', '2020-06-30')
+            (no2diff, shaps, features, ro, fac2o, mfbo, rt, fac2t, mfbt, rv, fac2v, 
+                mfbv) = run_xgboost(args, merged_train, bias_train, merged_full, 
+                obs_conc_full)
+            # Group data by date and average over all k-fold predictions
+            bcm_city = no2diff.groupby(['Date']).mean().reset_index()
+            # Add column corresponding to city name for each ID
+            bcm_city['City'] = city
+            bcm_withc40 = bcm_withc40.append(bcm_city, ignore_index=True)
+            # Save off raw (non bias-corrected) observations
+            raw_city = merged_full[['Date','NO2']].copy(deep=True)
+            raw_city['City'] = city
+            raw_withc40 = raw_withc40.append(raw_city, ignore_index=True)
+        else:
+            print('Skipping %s...'%city)
+    dno2, no2, diesel, cities = [], [], [], []
+    for index, row in focuscities_withc40.iterrows():
+        city = row['City']
+        print(city)
+        bcm_city = bcm_withc40.loc[bcm_withc40['City']==city]
+        bcm_city.set_index('Date', inplace=True)
+        before = np.nanmean(bcm_city.loc[(
+            pd.to_datetime('2020-03-15')-relativedelta(years=1)):
+            (pd.to_datetime('2020-06-15')-relativedelta(years=1))]['predicted'])
+        after = np.abs(np.nanmean(bcm_city.loc['2020-03-15':'2020-06-15']['anomaly']))
+        pchange = -after/before*100
+        # Save output
+        dno2.append(pchange)
+        no2.append(bcm_city['observed']['2019-01-01':'2019-12-31'].mean())
+        diesel.append(focuscities_withc40.loc[focuscities_withc40['City']==city]['Diesel share'].values[0])
+        cities.append(focuscities_withc40.loc[focuscities_withc40['City']==city]['City'].values[0])
+    diesel = np.array(diesel)
+    cities = np.array(cities)
+    no2 = np.array(no2)
+    dno2 = np.array(dno2)
+    # Create custom colormap
+    cmap = plt.get_cmap("pink_r")
+    cmap = truncate_colormap(cmap, 0.4, 0.9)
+    cmaplist = [cmap(i) for i in range(cmap.N)]
+    cmap = mpl.colors.LinearSegmentedColormap.from_list('Custom cmap', 
+        cmaplist, cmap.N)
+    cmap.set_over(color='k')
+    bounds = np.linspace(8, 20, 7)
+    norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
+    # Plotting
+    fig = plt.figure(figsize=(6,4))
+    ax1 = plt.subplot2grid((1,1),(0,0))
+    mb = ax1.scatter(diesel, dno2, c=no2, s=18, cmap=cmap, norm=norm, 
+        clip_on=False)
+    ax1.set_xlabel(r'Diesel-powered passenger vehicle share [%]')
+    ax1.set_ylabel(r'$\mathregular{\Delta}$ NO$_{\mathregular{2}}$ [%]')
+    # Calculate slope with total least squares (ODR)
+    idx = np.isfinite(diesel) & np.isfinite(dno2)
+    slope, intercept, r_value, p_value, std_err = stats.linregress(
+        diesel[idx], dno2[idx])
+    lincoeff = np.poly1d(np.polyfit(diesel[idx], dno2[idx], 1))
+    print('Equation coefficients should match the following:')
+    print(lincoeff)
+    ax1.plot(np.unique(diesel[idx]), np.poly1d(np.polyfit(diesel[idx], 
+        dno2[idx], 1))(np.unique(diesel[idx])), 'black', ls='dashed', lw=1, 
+        zorder=0, label='Linear fit (y=ax+b)\na=-0.40, b=-8.91')
+    # ax1.legend(frameon=False, loc=9, bbox_to_anchor=(0.5, 1.16), ncol=2)
+    ax1.legend(frameon=False, bbox_to_anchor=(0.4, 0.42))
+    axins1 = inset_axes(ax1, width='40%', height='5%', loc='lower left', 
+        bbox_to_anchor=(0.02, 0.04, 1, 1), bbox_transform=ax1.transAxes,
+        borderpad=0)
+    fig.colorbar(mb, cax=axins1, orientation="horizontal", extend='both', 
+        label='NO$_{\mathregular{2}}$ [ppbv]')
+    axins1.xaxis.set_ticks_position('top')
+    axins1.xaxis.set_label_position('top')
+    ax1.tick_params(labelsize=9)
+    ax1.set_xlim([-1,71])
+    ax1.set_ylim([-65,5])
+    # Calculate r, RMSE for linear vs. power fit
+    # dno2_sorted = sort_list(dno2, diesel)
+    # linfit = fit_func(beta, np.sort(diesel))
+    # powerfit = func(np.sort(diesel), *popt)
+    # print('Equation coefficients should match the following:')
+    # print('Linear: ', beta)
+    # print('Exponential: ', popt)
+    print('Linear correlation between diesel and dNO2=', r_value)
+    print('p-value=',p_value)
+    # print('RMSE for linear fit...', math.sqrt(mean_squared_error(dno2_sorted, 
+    #     linfit)))
+    # print('Correlation for linear fit...', np.corrcoef(dno2_sorted, 
+    #     linfit)[0,1])
+    # print('RMSE for exponential fit...', math.sqrt(mean_squared_error(dno2_sorted, 
+    #     powerfit)))
+    # for i, txt in enumerate(cities):
+    #     if txt == 'Santiago C40':
+    #         txt = 'Santiago'
+    #     elif txt == 'Mexico City C40':
+    #         txt = 'Mexico City'
+    #     elif txt == 'Los Angeles C40':
+    #         txt = 'Los Angeles'
+    #     elif txt == 'Berlin C40':
+    #         txt = 'Berlin'
+    #     elif txt == 'Milan C40':
+    #         txt = 'Milan'
+    #     elif txt == 'London C40':
+    #         txt = 'London'
+    #     elif txt == 'Auckland C40':
+    #         txt = 'Auckland'        
+    #     ax1.annotate(txt, (diesel[i]+1, dno2[i]+1), fontsize=9)
+    # plt.savefig(DIR_FIG+'figS9_citynames.pdf', dpi=1000)    
+    plt.savefig(DIR_FIG+'figS9.pdf', dpi=1000)
+    return
 
-def figS10(focuscities, bcm, model, mobility): 
+def figS10(obs):
+    """
+    """
+    from sklearn.metrics import mean_squared_error
+    import math
+    from scipy.optimize import curve_fit
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    import matplotlib as mpl
+    from dateutil.relativedelta import relativedelta
+    from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+    import scipy.odr    
+    from scipy import stats
+    
+    # Add additional C40 cities and calculate city-wide averages
+    obs_los = readc40aq.read_losangeles('NO2', '2018-01-01', '2020-12-31')
+    coordstemp = obs_los.groupby(['Longitude','Latitude']).size().reset_index()
+    coordstemp['City'] = 'Los Angeles C40'
+    coordstemp.rename({0:'Count'}, axis=1, inplace=True)
+    stationcoords.append(coordstemp)
+    obs_los = obs_los.groupby(by=['Date']).agg({
+        'Concentration':'mean', 'Latitude':'mean',
+        'Longitude':'mean', 'City':'first'}).reset_index()
+    obs_mex = readc40aq.read_mexicocity('NO2', '2018-01-01', '2020-12-31')
+    coordstemp = obs_mex.groupby(['Longitude','Latitude']).size().reset_index()
+    coordstemp['City'] = 'Mexico City C40'
+    coordstemp.rename({0:'Count'}, axis=1, inplace=True)
+    stationcoords.append(coordstemp)
+    obs_mex = obs_mex.groupby(by=['Date']).agg({
+        'Concentration':'mean', 'Latitude':'mean',
+        'Longitude':'mean', 'City':'first'}).reset_index()
+    obs_san = readc40aq.read_santiago('NO2', '2018-01-01', '2020-12-31')
+    coordstemp = obs_san.groupby(['Longitude','Latitude']).size().reset_index()
+    coordstemp['City'] = 'Santiago C40'
+    coordstemp.rename({0:'Count'}, axis=1, inplace=True)
+    stationcoords.append(coordstemp)
+    obs_san = obs_san.groupby(by=['Date']).agg({
+        'Concentration':'mean', 'Latitude':'mean',
+        'Longitude':'mean', 'City':'first'}).reset_index()
+    obs_ber = readc40aq.read_berlin('NO2', '2019-01-01', '2020-12-31')
+    coordstemp = obs_ber.groupby(['Longitude','Latitude']).size().reset_index()
+    coordstemp['City'] = 'Berlin C40'
+    coordstemp.rename({0:'Count'}, axis=1, inplace=True)
+    stationcoords.append(coordstemp)
+    obs_ber = obs_ber.groupby(by=['Date']).agg({
+        'Concentration':'mean', 'Latitude':'mean',
+        'Longitude':'mean', 'City':'first'}).reset_index()
+    obs_auc = readc40aq.read_auckland('NO2', '2019-01-01', '2020-12-31')
+    coordstemp = obs_auc.groupby(['Longitude','Latitude']).size().reset_index()
+    coordstemp['City'] = 'Auckland C40'
+    coordstemp.rename({0:'Count'}, axis=1, inplace=True)
+    stationcoords.append(coordstemp)
+    obs_auc = obs_auc.groupby(by=['Date']).agg({
+        'Concentration':'mean', 'Latitude':'mean',
+        'Longitude':'mean', 'City':'first'}).reset_index()
+    # Combine observations
+    obs_withc40 = obs.copy(deep=True)
+    obs_withc40 = obs_withc40.append(obs_los, ignore_index=False)
+    obs_withc40 = obs_withc40.append(obs_mex, ignore_index=False)
+    obs_withc40 = obs_withc40.append(obs_san, ignore_index=False)
+    obs_withc40 = obs_withc40.append(obs_auc, ignore_index=False)
+    focuscities_withc40 = build_focuscities(False)
+    # Recalculate bias-corrected model 
+    bcm_withc40 = pd.DataFrame()
+    raw_withc40 = pd.DataFrame()
+    # # Loop through cities and build bias-corrected model
+    for index, row in focuscities_withc40.iterrows():
+        city = row['City']    
+        print(city)    
+        # Select city in model/observational dataset
+        gcf_city = model.loc[model['city']==city]
+        obs_city = obs_withc40.loc[obs_withc40['City']==city].copy(deep=True)
+        # There are some cities (e.g., Brussels) with observations equal to 0 ppb
+        # that appear to just be missing data. Change these to NaN!
+        obs_city.loc[obs_city['Concentration']==0,'Concentration']= np.nan
+        # QA/QC: Require that year 2019 has at least 65% of observations for 
+        # a given city; remove observations +/- 3 standard deviations 
+        std = np.nanstd(obs_city['Concentration'])
+        mean = np.nanmean(obs_city['Concentration'])
+        obs_city.loc[obs_city['Concentration']>mean+(3*std), 'Concentration'] = np.nan
+        qaqc = obs_city.loc[(obs_city['Date']>='2019-01-01') & 
+            (obs_city['Date']<='2019-12-31')]
+        if qaqc.shape[0] >= (365*0.65):
+            # Remove city column otherwise XGBoost will throw a ValueError (i.e., 
+            # DataFrame.dtypes for data must be int, float, bool or categorical.  
+            # When categorical type is supplied, DMatrix parameter 
+            # `enable_categorical` must be set to `True`.city)    
+            del gcf_city['city'], obs_city['City']
+            # Run XGBoost for site
+            merged_train, bias_train, obs_conc_train = \
+                prepare_model_obs(obs_city, gcf_city, '2019-01-01', '2019-12-31')
+            merged_full, bias_full, obs_conc_full = \
+                prepare_model_obs(obs_city, gcf_city, '2019-01-01', '2020-06-30')
+            (no2diff, shaps, features, ro, fac2o, mfbo, rt, fac2t, mfbt, rv, fac2v, 
+                mfbv) = run_xgboost(args, merged_train, bias_train, merged_full, 
+                obs_conc_full)
+            # Group data by date and average over all k-fold predictions
+            bcm_city = no2diff.groupby(['Date']).mean().reset_index()
+            # Add column corresponding to city name for each ID
+            bcm_city['City'] = city
+            bcm_withc40 = bcm_withc40.append(bcm_city, ignore_index=True)
+            # Save off raw (non bias-corrected) observations
+            raw_city = merged_full[['Date','NO2']].copy(deep=True)
+            raw_city['City'] = city
+            raw_withc40 = raw_withc40.append(raw_city, ignore_index=True)
+        else:
+            print('Skipping %s...'%city)
+    dno2, no2, diesel, cities = [], [], [], []
+    for index, row in focuscities_withc40.iterrows():
+        city = row['City']
+        print(city)
+        bcm_city = bcm_withc40.loc[bcm_withc40['City']==city]
+        bcm_city.set_index('Date', inplace=True)
+        # Figure out REQUIRED lockdown dates
+        ldstart = focuscities_withc40.loc[focuscities_withc40['City']==
+            city]['startreq'].values[0]
+        ldstart = pd.to_datetime(ldstart)
+        ldend = focuscities_withc40.loc[focuscities_withc40['City']==city][
+            'endreq'].values[0]
+        ldend = pd.to_datetime(ldend)
+        if pd.isnull(ldstart)==False:
+            before = np.nanmean(bcm_city.loc[ldstart-relativedelta(years=1):
+                ldend-relativedelta(years=1)]['predicted'])
+            after = np.abs(np.nanmean(bcm_city.loc[ldstart:ldend]['anomaly']))
+            pchange = -after/before*100
+            dno2.append(pchange)
+        else: 
+            dno2.append(np.nan)
+        no2.append(bcm_city['observed']['2019-01-01':'2019-12-31'].mean())
+        diesel.append(focuscities_withc40.loc[focuscities_withc40['City']==city]['Diesel share'].values[0])
+        cities.append(focuscities_withc40.loc[focuscities_withc40['City']==city]['City'].values[0])
+    diesel = np.array(diesel)
+    cities = np.array(cities)
+    no2 = np.array(no2)
+    dno2 = np.array(dno2)
+    cmap = plt.get_cmap("pink_r")
+    cmap = truncate_colormap(cmap, 0.4, 0.9)
+    cmaplist = [cmap(i) for i in range(cmap.N)]
+    cmap = mpl.colors.LinearSegmentedColormap.from_list('Custom cmap', 
+        cmaplist, cmap.N)
+    cmap.set_over(color='k')
+    bounds = np.linspace(8, 20, 7)
+    norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
+    # Plotting
+    fig = plt.figure(figsize=(6,4))
+    ax1 = plt.subplot2grid((1,1),(0,0))
+    mb = ax1.scatter(diesel, dno2, c=no2, s=18, cmap=cmap, norm=norm, 
+        clip_on=False)
+    # Cities exceeding WHO guidelines
+    ax1.set_xlabel(r'Diesel-powered passenger vehicle share [%]')
+    ax1.set_ylabel(r'$\mathregular{\Delta}$ NO$_{\mathregular{2}}$ [%]')
+    # Calculate slope with least squares regression
+    idx = np.isfinite(dno2) & np.isfinite(diesel)
+    lincoeff = np.poly1d(np.polyfit(diesel[idx], dno2[idx], 1))
+    ax1.plot(np.unique(diesel), np.poly1d(np.polyfit(diesel[idx], dno2[idx], 1)
+        )(np.unique(diesel)), 'black', ls='dashed', lw=1, zorder=0, 
+        label='Linear fit (y=ax+b)\na=-0.52, b=-8.81')    
+    slope, intercept, r_value, p_value, std_err = stats.linregress(
+        diesel[idx], dno2[idx])
+    # ax1.legend(frameon=False, loc=9, bbox_to_anchor=(0.5, 1.16), ncol=2)
+    ax1.legend(frameon=False, bbox_to_anchor=(0.4, 0.42))
+    axins1 = inset_axes(ax1, width='40%', height='5%', loc='lower left', 
+        bbox_to_anchor=(0.02, 0.04, 1, 1), bbox_transform=ax1.transAxes,
+        borderpad=0)
+    fig.colorbar(mb, cax=axins1, orientation="horizontal", extend='both', 
+        label='NO$_{\mathregular{2}}$ [ppbv]')
+    axins1.xaxis.set_ticks_position('top')
+    axins1.xaxis.set_label_position('top')
+    ax1.tick_params(labelsize=9)
+    ax1.set_xlim([-1,71])
+    ax1.set_ylim([-70,5])
+    # Calculate r, RMSE for linear vs. power fit
+    dno2_sorted = sort_list(dno2, diesel)
+    dno2_sorted = np.array(dno2_sorted)
+    print('Equation coefficients should match the following:')
+    print('Linear: ', lincoeff)
+    print('Linear correlation between diesel and dNO2=', r_value)
+    print('p-value=',p_value)
+    # for i, txt in enumerate(cities):
+    #     if txt == 'Santiago C40':
+    #         txt = 'Santiago'
+    #     elif txt == 'Mexico City C40':
+    #         txt = 'Mexico City'
+    #     elif txt == 'Los Angeles C40':
+    #         txt = 'Los Angeles'
+    #     elif txt == 'Berlin C40':
+    #         txt = 'Berlin'
+    #     elif txt == 'Milan C40':
+    #         txt = 'Milan'
+    #     elif txt == 'London C40':
+    #         txt = 'London'
+    #     elif txt == 'Auckland C40':
+    #         txt = 'Auckland'
+    #     ax1.annotate(txt, (diesel[i]+1, dno2[i]+1), fontsize=9)
+    # plt.savefig(DIR_FIG+'figS10_citynames.pdf', dpi=1000)    
+    plt.savefig(DIR_FIG+'figS10.pdf', dpi=1000)
+    return
+
+def figS11(focuscities, bcm, model, mobility): 
     """
     Parameters
     ----------
@@ -2230,10 +2199,10 @@ def figS10(focuscities, bcm, model, mobility):
     # ax1.legend(frameon=False, loc=9, bbox_to_anchor=(0.5, 1.16), ncol=2)
     # ax1.legend(frameon=False, bbox_to_anchor=(0.4, 0.42))
     ax1.set_ylim([-65,5])
-    plt.savefig(DIR_FIG+'figS10_revised.pdf', dpi=1000)
+    plt.savefig(DIR_FIG+'figS11.pdf', dpi=1000)
     return 
 
-def figS11(focuscities, model, obs, mobility):
+def figS12(focuscities, model, obs, mobility):
     """
 
     Parameters
@@ -2494,10 +2463,10 @@ def figS11(focuscities, model, obs, mobility):
     ax2.text(0.5, 1.1, 'Milan', fontsize=12, transform=ax2.transAxes, 
         ha='center')
     plt.subplots_adjust(hspace=0.3, wspace=0.5)
-    plt.savefig(DIR_FIG+'figS11_revised.pdf', dpi=1000)
+    plt.savefig(DIR_FIG+'figS12.pdf', dpi=1000)
     return
 
-def figS12():
+def figS13():
     """
     
 
@@ -2645,49 +2614,41 @@ def figS12():
     ax1.legend(loc=8, ncol=4, frameon=False, bbox_to_anchor=(0.5, -0.55), 
         fontsize=12)
     plt.subplots_adjust(hspace=0.15, bottom=0.2, top=0.92)
-    plt.savefig(DIR_FIG+'figS12.pdf', dpi=1000)
+    plt.savefig(DIR_FIG+'figS13.pdf', dpi=1000)
     return 
     
-def figS13():
+def figS14():
     """
     Returns
     -------
     None.
 
     """
-    from sklearn.metrics import mean_squared_error
-    import math
-    from scipy.optimize import curve_fit
     import numpy as np
     import pandas as pd
     import matplotlib.pyplot as plt
-    import matplotlib as mpl
+    from scipy.stats import ks_2samp
     from dateutil.relativedelta import relativedelta
-    from mpl_toolkits.axes_grid1.inset_locator import inset_axes
     import scipy.odr    
     from scipy import stats
     import datetime as dt
-    import matplotlib.dates as mdates
-    import sys
-    sys.path.append('/Users/ghkerr/GW/mobility/')
-    import readc40aq
-    import readc40mobility
     focuscities = build_focuscities(True)
     # Initialize figure, axes
-    fig = plt.figure(figsize=(6,8))
-    ax1 = plt.subplot2grid((2,1),(0,0))
-    ax2 = plt.subplot2grid((2,1),(1,0))
+    fig = plt.figure(figsize=(6,9))
+    ax1 = plt.subplot2grid((3,1),(0,0))
+    ax2 = plt.subplot2grid((3,1),(1,0))
+    ax3 = plt.subplot2grid((3,1),(2,0))    
     ax1.set_title('(a) Non-traffic monitors', fontsize=12, loc='left')
     ax2.set_title('(b) Traffic monitors', fontsize=12, loc='left')
+    ax3.set_title('(c)', fontsize=12, loc='left')
     ax2.set_xlabel(r'Diesel-powered passenger vehicle share [%]', fontsize=12)
-    ax2.set_ylabel(r'$\mathregular{\Delta}$ NO$_{\mathregular{2}}$ [%]', 
-        fontsize=12)
     for ax in [ax1, ax2]:
         ax.set_xlim([-1,71])
         ax.set_ylim([-65,5])
+        ax.set_yticks([-60,-50,-40,-30,-20,-10,0])
         ax.set_ylabel(r'$\mathregular{\Delta}$ NO$_{\mathregular{2}}$ [%]', 
-            fontsize=12)
-        
+            fontsize=12)    
+        ax.yaxis.set_label_coords(-.1, .5)
     # Non-traffic monitors     
     siting = pd.read_csv(DIR_AQ+'eea/AirBase_v7_stations.csv', sep='\t', 
         engine='python')
@@ -2853,8 +2814,8 @@ def figS13():
     ax2.plot(diesel, dno2, 'ko', clip_on=False)
     mask = ~np.isnan(diesel) & ~np.isnan(dno2)
     slope, intercept, r_value, p_value, std_err = stats.linregress(diesel[mask], dno2[mask])
-    txtstr = 'r = %.2f\np-value = %.3f'%(r_value, p_value)
-    ax2.text(8, -62, txtstr, color='k', ha='left', fontsize=12)
+    txtstr = 'r = %.2f\np = %.3f'%(r_value, p_value)
+    ax2.text(9.5, -62, txtstr, color='k', ha='left', fontsize=12)
     # Plot best fit line
     print('for traffic')
     Model = scipy.odr.Model(fit_func)
@@ -2867,8 +2828,7 @@ def figS13():
     ax2.plot(np.sort(diesel[mask]), np.sort(diesel[mask])*beta[0] + beta[1], 'black', 
         ls='dashed', lw=1, zorder=0, 
         label='Linear fit (y=ax+b)\na=%.2f, b=%.2f'%(beta[0], beta[1]))
-    ax2.legend(frameon=False, bbox_to_anchor=(0.45, 0.33), fontsize=12)
-    
+    ax2.legend(frameon=False, bbox_to_anchor=(0.45, 0.44), fontsize=12)
     # # # # Traffic monitors
     siting = pd.read_csv(DIR_AQ+'eea/AirBase_v7_stations.csv', sep='\t', 
         engine='python')
@@ -2990,7 +2950,7 @@ def figS13():
             raw = pd.concat([raw, raw_city])
         else:
             print('Skipping %s...'%city)
-    dno2, no2, diesel, cities = [], [], [], []
+    dno2_t, no2, diesel, cities = [], [], [], []
     for index, row in focuscities.iterrows():
         city = row['City']
         print(city)
@@ -3004,26 +2964,60 @@ def figS13():
             ldend-relativedelta(years=1)]['predicted'])
         after = np.abs(np.nanmean(bcm_city.loc[ldstart:ldend]['anomaly']))
         pchange = -after/before*100
-        dno2.append(pchange)
+        dno2_t.append(pchange)
         no2.append(bcm_city['observed']['2019-01-01':'2019-12-31'].mean())
         diesel.append(focuscities.loc[focuscities['City']==city]['Diesel share'].values[0])
         cities.append(focuscities.loc[focuscities['City']==city]['City'].values[0])
     diesel = np.array(diesel)
     cities = np.array(cities)
     no2 = np.array(no2)
-    dno2 = np.array(dno2)
+    dno2_t = np.array(dno2_t)
     # Plot
-    ax1.plot(diesel, dno2, 'ko', clip_on=False)
-    mask = ~np.isnan(diesel) & ~np.isnan(dno2)
-    slope, intercept, r_value, p_value, std_err = stats.linregress(diesel[mask], dno2[mask])
-    txtstr = 'r = %.2f\np-value = %.3f'%(r_value, p_value)
-    ax1.text(8, -62, txtstr, color='k', ha='left', fontsize=12)
+    ax1.plot(diesel, dno2_t, 'ko', clip_on=False)
+    mask = ~np.isnan(diesel) & ~np.isnan(dno2_t)
+    slope, intercept, r_value, p_value, std_err = stats.linregress(diesel[mask], dno2_t[mask])
+    txtstr = 'r = %.2f\np = %.3f'%(r_value, p_value)
+    ax1.text(9.5, -62, txtstr, color='k', ha='left', fontsize=12)
     # Plot best fit line
     ax1.plot(np.sort(diesel[mask]), np.sort(diesel[mask])*slope + intercept, 'black', 
         ls='dashed', lw=1, zorder=0,
         label='Linear fit (y=ax+b)\na=%.2f, b=%.2f'%(slope, intercept))
-    ax1.legend(frameon=False, bbox_to_anchor=(0.45, 0.33), fontsize=12)
-    plt.savefig(DIR_FIG+'figS13.pdf', dpi=1000)
+    ax1.legend(frameon=False, bbox_to_anchor=(0.45, 0.44), fontsize=12)
+    # Plot histogram of differences 
+    # Inset axes for ECDF over the main axes
+    color_non = '#0095A8'
+    color_margin = '#FF7043'
+    bins = 10
+    mask = ~np.isnan(dno2)
+    counts1, bin_edges1 = np.histogram(dno2[mask], bins=bins, density=True)
+    cdf1 = np.cumsum(counts1)
+    mask = ~np.isnan(dno2_t)
+    counts2, bin_edges2 = np.histogram(dno2_t[mask], bins=bins, density=True)
+    cdf2 = np.cumsum(counts2)
+    # Histograms
+    ax3.hist(dno2, bins, facecolor=color_non, edgecolor='None', 
+        label='Traffic', alpha=0.9)
+    ax3.hist(dno2_t, bins, facecolor=color_margin, edgecolor=
+        'None', label='Non-traffic', alpha=0.9)
+    ax3.legend(frameon=False, ncol=2, bbox_to_anchor=(0.75,-0.26))
+    # # Inset axes for ECDF over the main axes
+    # inset_axes1 = inset_axes(ax3, width="30%", height=1.0, loc=2)
+    ks = ks_2samp(dno2, dno2_t)
+    # inset_axes1.plot(bin_edges1[1:], cdf1/cdf1[-1], ls='--', color=color_non)
+    # inset_axes1.plot(bin_edges2[1:], cdf2/cdf2[-1], ls='--', color=color_margin)
+    ax3.set_xlim([-65,5])
+    # inset_axes1.set_xlim([-65,5])
+    ax3.set_xlabel('$\mathregular{\Delta}$NO$_{\mathregular{2}}$ [%]', 
+        fontsize=12)
+    ax3.set_ylabel('Frequency', fontsize=12)
+    ax3.yaxis.set_label_coords(-.1, .5)
+    ax3.text(-63,5.5,'$\mathregular{\mu}$=%.2f'%np.nanmean(dno2), 
+        color=color_non, fontsize=12)
+    ax3.text(-63,4.8,'$\mathregular{\mu}$=%.2f'%np.nanmean(dno2_t), 
+        color=color_margin, fontsize=12)    
+    ax3.text(-63,4.1,'p=%.2f'%np.nanmean(ks.pvalue), color='k', fontsize=12)        
+    plt.subplots_adjust(hspace=0.4, bottom=0.10, left=0.12, right=0.95, top=0.95)    
+    plt.savefig(DIR_FIG+'figS14.pdf', dpi=1000)
     return         
 
 # import datetime as dt
@@ -3197,16 +3191,211 @@ def figS13():
 # fig2()
 # fig3(focuscities, bcm)  
 # fig4()
+
 # figS1(bcm)
 # figS2()
 # figS3()
 # figS4()
 # figS5()
-# figS6()
+# figS6(features)
 # figS7()
-# figS8(obs)
+# figS8()
 # figS9(obs)
-# figS10(focuscities, bcm, model, mobility)
-# figS11(focuscities, model, obs, mobility)
-# figS12()
+# figS10(obs)
+# figS11(focuscities, bcm, model, mobility)
+# figS12(focuscities, model, obs, mobility)
 # figS13()
+# figS14()
+
+"""REVEWIWER COMMENTS ABOUT THE NUMBER OF CITIES"""
+# bcm_alleu = pd.DataFrame()
+# raw_alleu = pd.DataFrame()
+# # Loop through cities and build bias-corrected model
+# for city in np.unique(obs.City):
+#     print(city)    
+#     # Select city in model/observational dataset
+#     gcf_city = model.loc[model['city']==city]
+#     obs_city = obs.loc[obs['City']==city].copy(deep=True)
+#     # There are some cities (e.g., Brussels) with observations equal to 0 ppb
+#     # that appear to just be missing data. Change these to NaN!
+#     obs_city.loc[obs_city['Concentration']==0,'Concentration']= np.nan
+#     # QA/QC: Require that year 2019 has at least 65% of observations for 
+#     # a given city; remove observations +/- 3 standard deviations 
+#     std = np.nanstd(obs_city['Concentration'])
+#     mean = np.nanmean(obs_city['Concentration'])
+#     obs_city.loc[obs_city['Concentration']>mean+(3*std), 'Concentration'] = np.nan
+#     qaqc = obs_city.loc[(obs_city['Date']>='2019-01-01') & 
+#         (obs_city['Date']<='2019-12-31')]
+#     if qaqc.shape[0] >= (365*0.65):
+#         print('pass QA/QC!')
+#         # Remove city column otherwise XGBoost will throw a ValueError (i.e., 
+#         # DataFrame.dtypes for data must be int, float, bool or categorical.  
+#         # When categorical type is supplied, DMatrix parameter 
+#         # `enable_categorical` must be set to `True`.city)    
+#         del gcf_city['city'], obs_city['City']
+#         # Run XGBoost for site
+#         merged_train, bias_train, obs_conc_train = \
+#             prepare_model_obs(obs_city, gcf_city, '2019-01-01', '2019-12-31')
+#         merged_full, bias_full, obs_conc_full = \
+#             prepare_model_obs(obs_city, gcf_city, '2019-01-01', '2020-06-30')
+#         (no2diff, shaps, features, ro, fac2o, mfbo, rt, fac2t, mfbt, rv, fac2v, 
+#             mfbv) = run_xgboost(args, merged_train, bias_train, merged_full, 
+#             obs_conc_full)
+#         # Group data by date and average over all k-fold predictions
+#         bcm_city = no2diff.groupby(['Date']).mean().reset_index()
+#         # Add column corresponding to city name for each ID
+#         bcm_city['City'] = city
+#         bcm_alleu = pd.concat([bcm_alleu, bcm_city])
+#         # Save off raw (non bias-corrected) observations
+#         raw_city = merged_full[['Date','NO2']].copy(deep=True)
+#         raw_city['City'] = city
+#         raw_alleu = pd.concat([raw_alleu, raw_city])
+# focuscities_alleu = [['Amsterdam', 'Netherlands', 14.0], # ACEA 
+#     ['Athens', 'Greece', 8.1], # ACEA 
+#     ['Auckland C40', 'New Zealand', 8.3], # C40 partnership
+#     ['Barcelona', 'Spain', 	58.7], # ACEA
+#     ['Berlin', 'Germany', 31.7], # ACEA
+#     ['Bucharest', 'Romania', 43.3], # ACEA
+#     ['Budapest', 'Hungary', 31.5], # ACEA
+#     ['Cologne', 'Germany', 	31.7], # ACEA
+#     ['Copenhagen', 'Denmark', 30.9], # ACEA 
+#     ['Dusseldorf', 'Germany', 31.7], # ACEA
+#     ['Frankfurt', 'Germany', 31.7], # ACEA
+#     ['Hamburg', 'Germany', 31.7], # ACEA 
+#     ['Helsinki', 'Finland', 27.9], # ACEA 
+#     ['Krakow', 'Poland', 31.6], # ACEA 
+#     ['Lodz', 'Poland', 31.6], # ACEA
+#     ['London C40', 'United Kingdom', 39.0], # ACEA 
+#     ['Los Angeles C40', 'United States', 0.4], # C40 partnership
+#     ['Madrid', 'Spain', 58.7], # ACEA
+#     ['Marseille', 'France', 58.9], # ACEA
+#     ['Mexico City C40', 'Mexico', 0.2], # C40 partnership
+#     ['Milan', 'Italy', 44.2], # ACEA 
+#     ['Munich', 'Germany', 31.7], # ACEA
+#     ['Naples', 'Italy', 44.2], # ACEA 
+#     ['Palermo', 'Italy', 44.2], # ACEA
+#     ['Paris', 'France', 58.9], # ACEA
+#     ['Prague', 'Czechia', 35.9], # ACEA
+#     ['Rome', 'Italy', 44.2], # ACEA
+#     ['Rotterdam', 'Netherlands', 14.0], # ACEA
+#     ['Santiago C40', 'Chile', 7.1], # C40 partnership
+#     ['Saragossa', 'Spain', 58.7], # ACEA
+#     ['Seville', 'Spain', 58.7], # ACEA
+#     ['Sofia', 'Bulgaria',  43.1], # ICCT partnership
+#     ['Stockholm', 'Sweden', 35.5], # ACEA
+#     ['Stuttgart', 'Germany', 31.7], # ACEA
+#     ['Turin', 'Italy', 44.2], # ACEA
+#     ['Valencia', 'Spain', 58.7], # ACEA
+#     ['Vienna', 'Austria', 55.0], # ACEA
+#     ['Vilnius', 'Lithuania', 69.2], # ACEA
+#     ['Warsaw', 'Poland', 31.6], # ACEA
+#     ['Wroclaw', 'Poland', 31.6], # ACEA
+#     ['Zagreb', 'Croatia', 52.4], # ACEA 
+#     ]
+# focuscities_alleu = pd.DataFrame(focuscities_alleu, columns=['City', 
+#     'Country', 'Diesel share'])
+# from sklearn.metrics import mean_squared_error
+# import math
+# from scipy.optimize import curve_fit
+# import numpy as np
+# import pandas as pd
+# import matplotlib.pyplot as plt
+# import matplotlib as mpl
+# from dateutil.relativedelta import relativedelta
+# from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+# import scipy.odr    
+# from scipy import stats
+# dno2, no2, diesel, cities = [], [], [], []
+# for city in np.unique(bcm_alleu.City):
+#     if city=='Lodz':
+#         pass
+#     else:
+#         bcm_city = bcm_alleu.loc[bcm_alleu['City']==city]
+#         bcm_city.set_index('Date', inplace=True)
+#         # ldstart = focuscities.loc[focuscities['City']==city]['start'].values[0]
+#         ldstart = pd.to_datetime('2020-03-15')
+#         # ldend = focuscities.loc[focuscities['City']==city]['end'].values[0]
+#         ldend = pd.to_datetime('2020-06-15')
+#         # Calculate percentage change in NO2 during lockdown periods
+#         before = np.nanmean(bcm_city.loc[ldstart-relativedelta(years=1):
+#             ldend-relativedelta(years=1)]['predicted'])
+#         after = np.abs(np.nanmean(bcm_city.loc[ldstart:ldend]['anomaly']))
+#         pchange = -after/before*100
+#         # Save output
+#         dno2.append(pchange)
+#         no2.append(bcm_city['observed']['2019-01-01':'2019-12-31'].mean())
+#         diesel.append(focuscities_alleu.loc[focuscities_alleu['City']==city]['Diesel share'].values[0])
+#         cities.append(focuscities_alleu.loc[focuscities_alleu['City']==city]['City'].values[0])
+# diesel = np.array(diesel)
+# cities = np.array(cities)
+# no2 = np.array(no2)
+# dno2 = np.array(dno2)
+# # Create custom colormap
+# cmap = plt.get_cmap("pink_r")
+# cmap = truncate_colormap(cmap, 0.4, 0.9)
+# cmaplist = [cmap(i) for i in range(cmap.N)]
+# cmap = mpl.colors.LinearSegmentedColormap.from_list('Custom cmap', 
+#     cmaplist, cmap.N)
+# cmap.set_over(color='k')
+# bounds = np.linspace(8, 20, 7)
+# norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
+# # Plotting
+# fig = plt.figure(figsize=(6,4))
+# ax1 = plt.subplot2grid((1,1),(0,0))
+# mb = ax1.scatter(diesel, dno2, c=no2, s=18, cmap=cmap, norm=norm, 
+#     clip_on=False)
+# ax1.set_xlabel(r'Diesel-powered passenger vehicle share [%]')
+# ax1.set_ylabel(r'$\mathregular{\Delta}$ NO$_{\mathregular{2}}$ [%]')
+# # Calculate slope with total least squares (ODR)
+# lincoeff = np.poly1d(np.polyfit(diesel, dno2, 1))
+# ax1.plot(np.unique(diesel), np.poly1d(np.polyfit(diesel, dno2, 1)
+#     )(np.unique(diesel)), 'black', ls='dashed', lw=1, zorder=0, 
+#     label='Linear fit (y=ax+b)\na=-0.69, b=2.48')
+# ax1.legend(frameon=False, bbox_to_anchor=(0.4, 0.42))
+# axins1 = inset_axes(ax1, width='40%', height='5%', loc='lower left', 
+#     bbox_to_anchor=(0.02, 0.04, 1, 1), bbox_transform=ax1.transAxes,
+#     borderpad=0)
+# fig.colorbar(mb, cax=axins1, orientation="horizontal", extend='both', 
+#     label='NO$_{\mathregular{2}}$ [ppbv]')
+# axins1.xaxis.set_ticks_position('top')
+# axins1.xaxis.set_label_position('top')
+# ax1.tick_params(labelsize=9)
+# ax1.set_xlim([-1,71])
+# ax1.set_ylim([-65,5])
+# # Calculate r, RMSE for linear vs. power fit
+# dno2_sorted = sort_list(dno2, diesel)
+# slope, intercept, r_value, p_value, std_err = stats.linregress(
+#     dno2, diesel)
+# print('Equation coefficients should match the following:')
+# print('Linear: ', lincoeff)
+# print('Linear correlation between diesel and dNO2=', r_value)
+# print('p-value=',p_value)
+# print('RMSE for linear fit...', math.sqrt(mean_squared_error(dno2_sorted, 
+#     np.poly1d(np.polyfit(diesel, dno2, 1)
+#     )(diesel))))
+# # Linear:   
+# # -0.685 x + 2.484
+# # Linear correlation between diesel and dNO2= -0.5599084136863561
+# # p-value= 0.0008615284846883064
+# # RMSE for linear fit... 19.040261103282173
+# plt.savefig(DIR_FIG+'reviewer2_comments.png', dpi=500)
+
+
+
+
+# # FIGURE S9
+# -0.4023 x - 8.914
+# Linear correlation between diesel and dNO2= -0.46826241983050326
+# p-value= 0.015838525825242238
+
+# # FIGURE S10
+# -0.5188 x - 8.806
+# Linear correlation between diesel and dNO2= -0.5795673550265563
+# p-value= 0.004700226514277074
+
+# # FIGURE S11
+# 0.1133 x - 18.86
+# Correlation coefficient is:
+# 0.1593262756772197
+# p-value is:
+# 0.47880314890623077
